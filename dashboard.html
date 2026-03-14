@@ -5,7 +5,6 @@
 <title>Dashboard</title>
 <style>
 body {margin:0;font-family:Arial;background:#f0f0f0;display:flex;}
-
 /* SIDEBAR */
 .sidebar {position:fixed;left:0;top:0;height:100%;width:250px;background:#1a1a1a;color:white;transition:width 0.3s;display:flex;flex-direction:column;}
 .sidebar.collapsed{width:60px;}
@@ -46,10 +45,10 @@ input{width:100%;padding:6px;}
 <div class="sidebar" id="sidebar">
   <div class="logo">DirectFeed</div>
   <button class="toggleBtn" onclick="toggleSidebar()">☰</button>
-  <button id="navInbox" onclick="loadInbox()"><i>📥</i><span class="label">Inbox</span></button>
-  <button id="navTrash" onclick="loadTrash()"><i>🗑️</i><span class="label">Trash</span></button>
-  <button id="navSend" onclick="openSend()"><i>✉️</i><span class="label">Send</span></button>
-  <button id="navSettings" onclick="openSettings()"><i>⚙️</i><span class="label">Settings</span></button>
+  <button id="navInbox"><i>📥</i><span class="label">Inbox</span></button>
+  <button id="navTrash"><i>🗑️</i><span class="label">Trash</span></button>
+  <button id="navSend"><i>✉️</i><span class="label">Send</span></button>
+  <button id="navSettings"><i>⚙️</i><span class="label">Settings</span></button>
 </div>
 
 <!-- CONTENT -->
@@ -87,7 +86,6 @@ const firebaseConfig = {
   messagingSenderId:"780676224282",
   appId:"1:780676224282:web:8580ee6c3aa1738394c8a3"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
@@ -123,7 +121,7 @@ function highlightNav(id){
 const content=document.getElementById("content");
 
 /* INBOX */
-window.loadInbox = async ()=>{
+async function loadInbox(){
   highlightNav("navInbox");
   content.innerHTML="<h2>Inbox</h2>";
   const q=query(collection(db,"messages"), where("to","==",username), where("deleted","==",false));
@@ -154,7 +152,7 @@ async function openMessage(id,data){
 }
 
 /* TRASH */
-window.loadTrash=async()=>{
+async function loadTrash(){
   highlightNav("navTrash");
   content.innerHTML="<h2>Trash</h2>";
   const q=query(collection(db,"messages"), where("to","==",username), where("deleted","==",true));
@@ -185,20 +183,24 @@ async function openTrash(id,data){
 }
 
 /* SEND MODAL */
-window.openSend=()=>{ 
+function openSend(){ 
   const modal=document.getElementById("sendModal");
   if(modal) modal.style.display="flex"; 
   highlightNav("navSend"); 
 }
-window.closeSend=()=>{ 
+function closeSend(){ 
   const modal=document.getElementById("sendModal");
   if(modal) modal.style.display="none"; 
   const status=document.getElementById("sendModalStatus");
   if(status) status.textContent=""; 
 }
+document.getElementById("navInbox").onclick = loadInbox;
+document.getElementById("navTrash").onclick = loadTrash;
+document.getElementById("navSend").onclick = openSend;
 
 /* SEND MESSAGE */
-window.sendMessage = async () => {
+async function sendMessage(){
+  console.log("Send button clicked");
   const recipient = document.getElementById("recipient");
   const textEl = document.getElementById("messageText");
   const statusModal = document.getElementById("sendModalStatus");
@@ -232,8 +234,14 @@ window.sendMessage = async () => {
   } catch(err){ console.error(err); statusModal.textContent="Error sending message"; statusModal.style.color="red"; }
 }
 
+// Connect Send button
+const sendBtn = document.getElementById("sendButton");
+if(sendBtn) sendBtn.addEventListener("click", sendMessage);
+else console.error("Send button not found");
+
 /* INITIAL LOAD */
 loadInbox();
+
 </script>
 </body>
 </html>

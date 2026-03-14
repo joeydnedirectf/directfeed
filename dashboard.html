@@ -9,48 +9,41 @@ body {margin:0;font-family:Arial;background:#f0f0f0;display:flex;}
 /* SIDEBAR */
 .sidebar {
   position: fixed;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: 250px;
-  background: #1a1a1a;
-  color: white;
+  left:0;
+  top:0;
+  height:100%;
+  width:250px;
+  background:#1a1a1a;
+  color:white;
   transition: width 0.3s;
-  display: flex;
-  flex-direction: column;
+  display:flex;
+  flex-direction:column;
 }
-.sidebar.collapsed { width: 60px; }
-.sidebar .logo { font-size: 22px; text-align: center; padding: 15px 0; font-weight: bold; border-bottom: 1px solid #333; }
+.sidebar.collapsed { width:60px; }
+.sidebar .logo { font-size:22px; text-align:center; padding:15px 0; font-weight:bold; border-bottom:1px solid #333; }
 .sidebar button {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: 12px 20px;
-  border: none;
-  background: none;
-  color: white;
-  cursor: pointer;
-  text-align: left;
-  font-size: 16px;
-  transition: background 0.2s;
-}
-.sidebar button:hover { background: #333; }
-.sidebar button i { margin-right: 10px; font-style: normal; width: 20px; text-align:center; }
-.sidebar button.active { background: #444; }
-
-/* TOGGLE BUTTON */
-.toggleBtn {
-  background:#444;
+  display:flex;
+  align-items:center;
+  width:100%;
+  padding:12px 20px;
   border:none;
+  background:none;
   color:white;
   cursor:pointer;
-  font-size:18px;
-  padding:10px;
   text-align:left;
+  font-size:16px;
+  transition:background 0.2s;
 }
+.sidebar button:hover { background:#333; }
+.sidebar button i { margin-right:10px; font-style:normal; width:20px; text-align:center; }
+.sidebar button.active { background:#444; }
+
+/* TOGGLE BUTTON */
+.toggleBtn { background:#444; border:none; color:white; cursor:pointer; font-size:18px; padding:10px; text-align:left; }
 
 /* CONTENT */
 .content { margin-left:250px; padding:20px; transition: margin-left 0.3s; flex:1; }
+h2 { margin-top:0; }
 
 /* TOP RIGHT */
 .topRight { position: fixed; top:15px; right:20px; text-align:right; }
@@ -88,7 +81,7 @@ textarea { width:100%; height:80px; }
   <button id="navInbox" onclick="loadInbox()"><i>📥</i><span class="label">Inbox</span></button>
   <button id="navTrash" onclick="loadTrash()"><i>🗑️</i><span class="label">Trash</span></button>
   <button id="navSend" onclick="openSend()"><i>✉️</i><span class="label">Send</span></button>
-  <button id="navSettings" onclick="goSettings()"><i>⚙️</i><span class="label">Settings</span></button>
+  <button id="navSettings" onclick="openSettings()"><i>⚙️</i><span class="label">Settings</span></button>
 </div>
 
 <!-- CONTENT -->
@@ -126,34 +119,44 @@ const firebaseConfig = {
   appId:"1:780676224282:web:8580ee6c3aa1738394c8a3"
 };
 
-const app=initializeApp(firebaseConfig);
-const db=getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 /* SESSION LOGIN */
-let username=sessionStorage.getItem("loggedInUser");
+let username = sessionStorage.getItem("loggedInUser");
 if(!username) window.location.href="login.html";
-document.getElementById("userDisplay").textContent=username;
+document.getElementById("userDisplay").textContent = username;
 
 /* LOGOUT */
-document.getElementById("logoutBtn").onclick = ()=>{ sessionStorage.removeItem("loggedInUser"); window.location.href="login.html"; }
-document.getElementById("settingsBtn").onclick = ()=>{ goSettings(); }
+document.getElementById("logoutBtn").onclick = ()=>{ 
+  sessionStorage.removeItem("loggedInUser"); 
+  window.location.href="login.html"; 
+}
+
+/* SETTINGS NAVIGATION FIX */
+function openSettings(){
+  window.location.href = "settings.html"; // Navigate to settings page
+  highlightNav("navSettings"); // Highlight sidebar
+}
+
+// Hook top-right Settings button
+document.getElementById("settingsBtn").onclick = openSettings;
 
 /* SIDEBAR TOGGLE */
 function toggleSidebar(){
-  const sb=document.getElementById("sidebar");
+  const sb = document.getElementById("sidebar");
   sb.classList.toggle("collapsed");
-  document.querySelector(".content").style.marginLeft=sb.classList.contains("collapsed")?"60px":"250px";
+  document.querySelector(".content").style.marginLeft = sb.classList.contains("collapsed")?"60px":"250px";
 }
 
-/* NAVIGATION */
-function goSettings(){ window.location.href="settings.html"; }
-
-/* CONTENT AREA */
-const content=document.getElementById("content");
+/* HIGHLIGHT NAV */
 function highlightNav(id){
   ["navInbox","navTrash","navSend","navSettings"].forEach(b=>document.getElementById(b).classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
+
+/* CONTENT AREA */
+const content=document.getElementById("content");
 
 /* INBOX */
 window.loadInbox = async ()=>{
@@ -233,7 +236,6 @@ window.sendMessage=async()=>{
     const userDoc=await getDoc(doc(db,"users",recipient));
     if(!userDoc.exists()){ statusModal.textContent="User does not exist"; statusModal.style.color="red"; return; }
     const docRef=await addDoc(collection(db,"messages"),{ from:username, to:recipient, text:text, deleted:false, timestamp:Date.now() });
-    console.log("Message sent:",docRef.id);
     statusModal.textContent="Message sent successfully"; statusModal.style.color="green";
     statusMain.textContent="Message sent to "+recipient; statusMain.style.color="green";
     document.getElementById("recipient").value=""; document.getElementById("messageText").value="";

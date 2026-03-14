@@ -169,15 +169,32 @@ async function loadTrash(){
 }
 
 /* OPEN TRASH */
-async function openTrash(id,data){
+async function openTrash(id, data){
   content.innerHTML="";
-  const box=document.createElement("div");
-  box.className="fullMessage";
-  box.innerHTML="<h3>From: "+data.from+"</h3><p>"+data.text+"</p>";
-  const del=document.createElement("button");
-  del.className="permDelete";
-  del.textContent="Delete Permanently";
-  del.onclick=async()=>{ await deleteDoc(doc(db,"messages",id)); loadTrash(); }
+  const box = document.createElement("div");
+  box.className = "fullMessage";
+  box.innerHTML = "<h3>From: " + data.from + "</h3><p>" + data.text + "</p>";
+
+  // Restore button
+  const restoreBtn = document.createElement("button");
+  restoreBtn.className = "deleteBtn"; // can reuse style
+  restoreBtn.style.background = "green";
+  restoreBtn.textContent = "Restore to Inbox";
+  restoreBtn.onclick = async () => {
+      await updateDoc(doc(db,"messages",id), { deleted: false });
+      loadTrash(); // refresh trash view
+  };
+
+  // Permanent delete button
+  const del = document.createElement("button");
+  del.className = "permDelete";
+  del.textContent = "Delete Permanently";
+  del.onclick = async () => { 
+      await deleteDoc(doc(db,"messages",id)); 
+      loadTrash(); 
+  };
+
+  box.appendChild(restoreBtn);
   box.appendChild(del);
   content.appendChild(box);
 }

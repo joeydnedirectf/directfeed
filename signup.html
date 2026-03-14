@@ -6,17 +6,19 @@
 <title>Sign Up</title>
 </head>
 <body>
-<h2>Create Account (Free)</h2>
+<h2>Create Account</h2>
 <input id="signupUsername" placeholder="Username"><br><br>
 <input type="password" id="signupPassword" placeholder="Password"><br><br>
-<button id="createAccountBtn">Create Account</button>
+<button id="payButton">Pay & Create Account</button>
 <div id="signupStatus" style="margin-top:10px;color:red;"></div>
+
+<script src="https://js.stripe.com/v3/"></script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
-// Firebase config
+// ==== FIREBASE CONFIG ==== (fill your keys)
 const firebaseConfig = {
   piKey: "AIzaSyCnE-UOw56IASUOU_qwBcF5YsBOOml9BRY",
   authDomain: "directfeed-c3084.firebaseapp.com",
@@ -29,33 +31,46 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// SHA256 hash
+// SHA256 hashing
 async function sha256(msg){
   const buf = new TextEncoder().encode(msg);
   const hashBuffer = await crypto.subtle.digest('SHA-256', buf);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map(b => b.toString(16).padStart(2,'0'))
-    .join('');
+  return Array.from(new Uint8Array(hashBuffer)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-const btn = document.getElementById("createAccountBtn");
-const status = document.getElementById("signupStatus");
+const payBtn = document.getElementById("payButton");
+const statusDiv = document.getElementById("signupStatus");
 
-btn.addEventListener("click", async () => {
+payBtn.addEventListener("click", async () => {
   const username = document.getElementById("signupUsername").value.trim();
   const password = document.getElementById("signupPassword").value;
 
-  if(!username || !password){ status.textContent="Fill both fields"; return; }
+  if(!username || !password){
+    statusDiv.textContent="Fill both fields";
+    return;
+  }
 
+  // Check Firestore for existing username
   const userRef = doc(db,"users",username);
   const userSnap = await getDoc(userRef);
-  if(userSnap.exists()){ status.textContent="Username taken"; return; }
+  if(userSnap.exists()){
+    statusDiv.textContent="Username already taken";
+    return;
+  }
 
   const hash = await sha256(password);
-  await setDoc(userRef, { password: hash });
 
-  alert("Account created! You can now login.");
-  window.location.href="login.html";
+  // ==== STRIPE CHECKOUT (test mode) ====
+  const stripe = Stripe("pk_live_51T7fvUCQeEWEiwM1QZOR90GqTh41jHAKGb3HUd0CeOG8zakKRaSmIruRCcKKs68GuSLOgfXxHwEKLGngeLxaZDai00GgaECWyL"); // pk_test_...
+  
+  // Create a Checkout Session client-side (test only)
+  // Stripe allows client-only mode for test/demo
+  const session = await stripe.redirectToCheckout({
+    lineItems: [{ price: "price_TEST_ID", quantity: 1 }], // your test product
+    mode: "payment",
+    successUrl: `${window.location.origin}/signup-success.html?username=${username}&hash=${hash}`,
+    cancelUrl: `${window.location.href}`
+  });
 });
 </script>
 </body>

@@ -4,167 +4,113 @@
 <meta charset="UTF-8">
 <title>Dashboard</title>
 <style>
-body {
-  margin: 0;
-  font-family: Arial;
-  background: #f0f0f0;
-}
+body {margin:0; font-family:Arial; background:#f0f0f0;}
 
-/* Top-right user display */
+/* TOP RIGHT BAR */
 .topRight {
   position: fixed;
   top: 15px;
   right: 20px;
-  text-align: right;
+  text-align:right;
 }
-
 .topRight button {
-  margin-top: 5px;
+  margin-left: 5px;
   padding: 6px 10px;
-  background: #007bff;
-  border: none;
-  color: white;
-  cursor: pointer;
-  border-radius: 4px;
+  border:none;
+  cursor:pointer;
+  border-radius:4px;
 }
+#logoutBtn { background:#007bff; color:white;}
+#settingsBtn { background:#888; color:white;}
 
-/* Sidebar */
+/* SIDEBAR */
 .sidebar {
   position: fixed;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: 220px;
-  background: #222;
-  color: white;
-  padding-top: 20px;
-  transition: 0.3s;
+  left:0;
+  top:0;
+  height:100%;
+  width:220px;
+  background:#222;
+  color:white;
+  padding-top:20px;
+  transition:0.3s;
 }
-
 .sidebar button {
-  display: block;
-  width: 100%;
-  padding: 12px;
-  border: none;
-  background: none;
-  color: white;
-  text-align: left;
-  cursor: pointer;
+  display:block;
+  width:100%;
+  padding:12px;
+  border:none;
+  background:none;
+  color:white;
+  text-align:left;
+  cursor:pointer;
 }
+.sidebar button:hover { background:#444; }
 
-.sidebar button:hover {
-  background: #444;
-}
-
+/* Close sidebar button */
 .closeBtn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: #444;
-  padding: 5px 10px;
-  border: none;
-  color: white;
-  cursor: pointer;
+  position:absolute;
+  top:10px;
+  right:10px;
+  background:#444;
+  padding:5px 10px;
+  color:white;
+  border:none;
+  cursor:pointer;
 }
 
-/* Content */
-.content {
-  margin-left: 220px;
-  padding: 20px;
-}
+/* CONTENT */
+.content { margin-left:220px; padding:20px; }
 
-/* Message rows */
+/* MESSAGE ROWS */
 .messageRow {
-  background: white;
-  padding: 15px;
-  margin-bottom: 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  border: 1px solid #ddd;
+  background:white;
+  padding:15px;
+  margin-bottom:10px;
+  border-radius:6px;
+  cursor:pointer;
+  border:1px solid #ddd;
 }
-
-.messageRow:hover {
-  background: #f7f7f7;
-}
-
+.messageRow:hover { background:#f7f7f7; }
 .fullMessage {
-  background: white;
-  padding: 20px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
+  background:white;
+  padding:20px;
+  border-radius:6px;
+  border:1px solid #ddd;
 }
 
-/* Delete buttons */
-.deleteBtn {
-  background: red;
-  color: white;
-  border: none;
-  padding: 10px;
-  margin-top: 10px;
-  cursor: pointer;
-}
+/* DELETE BUTTONS */
+.deleteBtn { background:red; color:white; border:none; padding:10px; margin-top:10px; cursor:pointer; }
+.permDelete { background:black; color:white; border:none; padding:10px; margin-top:10px; cursor:pointer; }
 
-.permDelete {
-  background: black;
-  color: white;
-  border: none;
-  padding: 10px;
-  margin-top: 10px;
-  cursor: pointer;
-}
-
-/* Send button */
+/* SEND BUTTON */
 .sendBtn {
   position: fixed;
   bottom: 60px;
   right: 20px;
   background: #007bff;
-  color: white;
-  border: none;
-  padding: 16px 22px;
-  border-radius: 50px;
-  cursor: pointer;
+  color:white;
+  border:none;
+  padding:16px 22px;
+  border-radius:50px;
+  cursor:pointer;
 }
+/* SEND STATUS */
+#sendStatus { position:fixed; bottom:20px; right:20px; font-size:14px; }
 
-/* Send status */
-#sendStatus {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  font-size: 14px;
-}
+/* SEND MODAL */
+.modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; }
+.modalContent { background:white; padding:20px; border-radius:8px; width:320px; }
+textarea { width:100%; height:80px; }
 
-/* Send modal */
-.modal {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.5);
-  justify-content: center;
-  align-items: center;
-}
-
-.modalContent {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  width: 320px;
-}
-
-textarea {
-  width: 100%;
-  height: 80px;
-}
 </style>
 </head>
 <body>
 
-<!-- TOP RIGHT USER -->
+<!-- TOP RIGHT -->
 <div class="topRight">
-  <div>Welcome, <span id="userDisplay"></span></div>
+  <span>Welcome, <span id="userDisplay"></span></span>
+  <button id="settingsBtn">Settings</button>
   <button id="logoutBtn">Logout</button>
 </div>
 
@@ -175,7 +121,7 @@ textarea {
   <button onclick="loadTrash()">Trash</button>
 </div>
 
-<!-- MAIN CONTENT -->
+<!-- CONTENT -->
 <div class="content" id="content"></div>
 
 <!-- SEND BUTTON -->
@@ -187,8 +133,7 @@ textarea {
   <div class="modalContent">
     <h3>Send Message</h3>
     <input id="recipient" placeholder="Recipient username"><br><br>
-    <textarea id="messageText" maxlength="200" placeholder="Message (200 max)"></textarea>
-    <br><br>
+    <textarea id="messageText" maxlength="200" placeholder="Message (200 max)"></textarea><br><br>
     <button onclick="sendMessage()">Send</button>
     <button onclick="closeSend()">Cancel</button>
     <div id="sendModalStatus" style="margin-top:10px;font-size:14px;"></div>
@@ -211,18 +156,23 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* USER */
-const username = sessionStorage.getItem("loggedInUser");
-if(!username) window.location.href = "login.html";
+/* SESSION LOGIN */
+let username = sessionStorage.getItem("loggedInUser");
+if(!username){
+  window.location.href="login.html";
+}
 document.getElementById("userDisplay").textContent = username;
 
 /* LOGOUT */
 document.getElementById("logoutBtn").onclick = ()=>{
   sessionStorage.removeItem("loggedInUser");
-  window.location.href = "login.html";
+  window.location.href="login.html";
 }
 
-const content = document.getElementById("content");
+/* SETTINGS BUTTON */
+document.getElementById("settingsBtn").onclick = ()=>{
+  window.location.href="settings.html";
+}
 
 /* SIDEBAR */
 window.toggleNav = ()=>{
@@ -231,6 +181,7 @@ window.toggleNav = ()=>{
 }
 
 /* INBOX */
+const content = document.getElementById("content");
 window.loadInbox = async ()=>{
   content.innerHTML = "<h2>Inbox</h2>";
   const q = query(collection(db,"messages"),
@@ -241,8 +192,8 @@ window.loadInbox = async ()=>{
   snap.forEach(docu=>{
     const data = docu.data();
     const row = document.createElement("div");
-    row.className = "messageRow";
-    row.innerHTML = "<b>From:</b> "+data.from+"<br>"+data.text.substring(0,60);
+    row.className="messageRow";
+    row.innerHTML="<b>From:</b> "+data.from+"<br>"+data.text.substring(0,60);
     row.onclick = ()=>openMessage(docu.id,data);
     content.appendChild(row);
   });
@@ -251,17 +202,15 @@ window.loadInbox = async ()=>{
 /* OPEN MESSAGE */
 async function openMessage(id,data){
   content.innerHTML="";
-  const box = document.createElement("div");
+  const box=document.createElement("div");
   box.className="fullMessage";
-  box.innerHTML = "<h3>From: "+data.from+"</h3><p>"+data.text+"</p>";
-  const del = document.createElement("button");
+  box.innerHTML="<h3>From: "+data.from+"</h3><p>"+data.text+"</p>";
+  const del=document.createElement("button");
   del.className="deleteBtn";
-  del.textContent = "Delete";
-  del.onclick = async()=>{
-    try {
-      await updateDoc(doc(db,"messages",id),{deleted:true});
-      loadInbox();
-    } catch(e){ console.error("Error deleting:", e); }
+  del.textContent="Delete";
+  del.onclick=async()=>{
+    try { await updateDoc(doc(db,"messages",id),{deleted:true}); loadInbox(); }
+    catch(e){ console.error(e); }
   }
   box.appendChild(del);
   content.appendChild(box);
@@ -270,16 +219,16 @@ async function openMessage(id,data){
 /* TRASH */
 window.loadTrash = async ()=>{
   content.innerHTML = "<h2>Trash</h2>";
-  const q = query(collection(db,"messages"),
-                  where("to","==",username),
-                  where("deleted","==",true));
-  const snap = await getDocs(q);
+  const q=query(collection(db,"messages"),
+                where("to","==",username),
+                where("deleted","==",true));
+  const snap=await getDocs(q);
   if(snap.empty) content.innerHTML += "<p>No messages in Trash.</p>";
   snap.forEach(docu=>{
     const data = docu.data();
-    const row = document.createElement("div");
-    row.className = "messageRow";
-    row.innerHTML = "<b>From:</b> "+data.from+"<br>"+data.text.substring(0,60);
+    const row=document.createElement("div");
+    row.className="messageRow";
+    row.innerHTML="<b>From:</b> "+data.from+"<br>"+data.text.substring(0,60);
     row.onclick = ()=>openTrash(docu.id,data);
     content.appendChild(row);
   });
@@ -288,24 +237,22 @@ window.loadTrash = async ()=>{
 /* OPEN TRASH */
 async function openTrash(id,data){
   content.innerHTML="";
-  const box = document.createElement("div");
+  const box=document.createElement("div");
   box.className="fullMessage";
-  box.innerHTML = "<h3>From: "+data.from+"</h3><p>"+data.text+"</p>";
-  const del = document.createElement("button");
+  box.innerHTML="<h3>From: "+data.from+"</h3><p>"+data.text+"</p>";
+  const del=document.createElement("button");
   del.className="permDelete";
-  del.textContent = "Delete Permanently";
-  del.onclick = async()=>{
-    try {
-      await deleteDoc(doc(db,"messages",id));
-      loadTrash();
-    } catch(e){ console.error("Error deleting permanently:", e); }
+  del.textContent="Delete Permanently";
+  del.onclick=async()=>{
+    try{ await deleteDoc(doc(db,"messages",id)); loadTrash(); }
+    catch(e){ console.error(e); }
   }
   box.appendChild(del);
   content.appendChild(box);
 }
 
 /* SEND MODAL */
-window.openSend = ()=>{document.getElementById("sendModal").style.display="flex";}
+window.openSend = ()=>{ document.getElementById("sendModal").style.display="flex"; }
 window.closeSend = ()=>{
   document.getElementById("sendModal").style.display="none";
   document.getElementById("sendModalStatus").textContent="";
@@ -313,55 +260,40 @@ window.closeSend = ()=>{
 
 /* SEND MESSAGE */
 window.sendMessage = async ()=>{
-  const recipient = document.getElementById("recipient").value.trim();
-  const text = document.getElementById("messageText").value.trim();
-  const statusModal = document.getElementById("sendModalStatus");
-  const statusMain = document.getElementById("sendStatus");
-
-  statusModal.textContent = "";
-  statusMain.textContent = "";
+  const recipient=document.getElementById("recipient").value.trim();
+  const text=document.getElementById("messageText").value.trim();
+  const statusModal=document.getElementById("sendModalStatus");
+  const statusMain=document.getElementById("sendStatus");
+  statusModal.textContent=""; statusMain.textContent="";
 
   if(text.length>200){
-    statusModal.textContent="Message too long";
-    statusModal.style.color="red";
+    statusModal.textContent="Message too long"; statusModal.style.color="red";
     return;
   }
 
   try {
     const userDoc = await getDoc(doc(db,"users",recipient));
-    if(!userDoc.exists()){
-      statusModal.textContent="User does not exist";
-      statusModal.style.color="red";
+    if(!userDoc.exists()){ 
+      statusModal.textContent="User does not exist"; statusModal.style.color="red"; 
       return;
     }
 
     const docRef = await addDoc(collection(db,"messages"),{
-      from: username,
-      to: recipient,
-      text: text,
-      deleted: false,
-      timestamp: Date.now()
+      from: username, to: recipient, text:text, deleted:false, timestamp:Date.now()
     });
+    console.log("Message sent:", docRef.id);
 
-    console.log("Message written with ID: ", docRef.id);
-    statusModal.textContent="Message sent successfully";
-    statusModal.style.color="green";
-
-    statusMain.textContent="Message sent to "+recipient;
-    statusMain.style.color="green";
+    statusModal.textContent="Message sent successfully"; statusModal.style.color="green";
+    statusMain.textContent="Message sent to "+recipient; statusMain.style.color="green";
 
     document.getElementById("recipient").value="";
     document.getElementById("messageText").value="";
 
-    // reload inbox automatically
     loadInbox();
-
-  } catch(e){
-    console.error("Error sending message:", e);
-    statusModal.textContent="Error sending message";
-    statusModal.style.color="red";
-    statusMain.textContent="Error sending message";
-    statusMain.style.color="red";
+  } catch(e){ 
+    console.error(e);
+    statusModal.textContent="Error sending message"; statusModal.style.color="red";
+    statusMain.textContent="Error sending message"; statusMain.style.color="red";
   }
 }
 

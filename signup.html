@@ -6,26 +6,19 @@
 <title>Sign Up</title>
 </head>
 <body>
-<h2>Create Account</h2>
+<h2>Create Account (Free)</h2>
 <input id="signupUsername" placeholder="Username"><br><br>
 <input type="password" id="signupPassword" placeholder="Password"><br><br>
-<button id="payButton">Pay & Create Account</button>
+<button id="createAccountBtn">Create Account</button>
 <div id="signupStatus" style="margin-top:10px;color:red;"></div>
 
 <script type="module">
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-
-// Optional SHA256 function (simple)
-async function sha256(message) {
-    const msgBuffer = new TextEncoder().encode(message);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
 // Firebase config
 const firebaseConfig = {
-  apiKey: "AIzaSyCnE-UOw56IASUOU_qwBcF5YsBOOml9BRY",
+  piKey: "AIzaSyCnE-UOw56IASUOU_qwBcF5YsBOOml9BRY",
   authDomain: "directfeed-c3084.firebaseapp.com",
   databaseURL: "https://directfeed-c3084-default-rtdb.firebaseio.com",
   projectId: "directfeed-c3084",
@@ -36,48 +29,34 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const payBtn = document.getElementById("payButton");
-const statusDiv = document.getElementById("signupStatus");
+// SHA256 hash
+async function sha256(msg){
+  const buf = new TextEncoder().encode(msg);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2,'0'))
+    .join('');
+}
 
-payBtn.addEventListener("click", async () => {
-    const username = document.getElementById("signupUsername").value.trim();
-    const password = document.getElementById("signupPassword").value;
+const btn = document.getElementById("createAccountBtn");
+const status = document.getElementById("signupStatus");
 
-    if(!username || !password){
-        statusDiv.textContent = "Fill both fields"; 
-        return; 
-    }
+btn.addEventListener("click", async () => {
+  const username = document.getElementById("signupUsername").value.trim();
+  const password = document.getElementById("signupPassword").value;
 
-    // Check if username exists
-    const userRef = doc(db,"users",username);
-    const userSnap = await getDoc(userRef);
-    if(userSnap.exists()){ 
-        statusDiv.textContent="Username taken"; 
-        return; 
-    }
+  if(!username || !password){ status.textContent="Fill both fields"; return; }
 
-    // Hash password
-    const hash = await sha256(password);
+  const userRef = doc(db,"users",username);
+  const userSnap = await getDoc(userRef);
+  if(userSnap.exists()){ status.textContent="Username taken"; return; }
 
-    // === Stripe Checkout ===
-    try {
-        // Call your server endpoint (Firebase Function or Node.js)
-        const res = await fetch("/create-checkout-session", {
-            method:"POST",
-            headers: {"Content-Type":"application/json"},
-            body: JSON.stringify({username, hash})
-        });
-        const data = await res.json();
-        const stripe = Stripe("pk_live_51T7fvUCQeEWEiwM1QZOR90GqTh41jHAKGb3HUd0CeOG8zakKRaSmIruRCcKKs68GuSLOgfXxHwEKLGngeLxaZDai00GgaECWyL");
-        await stripe.redirectToCheckout({ sessionId: data.sessionId });
-    } catch(e){
-        console.error(e);
-        statusDiv.textContent="Payment failed";
-    }
+  const hash = await sha256(password);
+  await setDoc(userRef, { password: hash });
+
+  alert("Account created! You can now login.");
+  window.location.href="login.html";
 });
 </script>
-
-<!-- Stripe.js -->
-<script src="https://js.stripe.com/v3/"></script>
 </body>
 </html>

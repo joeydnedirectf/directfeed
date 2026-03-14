@@ -37,6 +37,7 @@ h2{margin-top:0;}
 .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);justify-content:center;align-items:center;}
 .modalContent{background:white;padding:20px;border-radius:8px;width:320px;}
 textarea{width:100%;height:80px;}
+input{width:100%;padding:6px;}
 </style>
 </head>
 <body>
@@ -67,7 +68,7 @@ textarea{width:100%;height:80px;}
     <h3>Send Message</h3>
     <input id="recipient" placeholder="Recipient username"><br><br>
     <textarea id="messageText" maxlength="200" placeholder="Message (200 max)"></textarea><br><br>
-    <button onclick="sendMessage()">Send</button>
+    <button id="sendButton">Send</button>
     <button onclick="closeSend()">Cancel</button>
     <div id="sendModalStatus" style="margin-top:10px;font-size:14px;"></div>
   </div>
@@ -184,31 +185,51 @@ async function openTrash(id,data){
 }
 
 /* SEND MODAL */
-window.openSend=()=>{ document.getElementById("sendModal").style.display="flex"; highlightNav("navSend"); }
-window.closeSend=()=>{ document.getElementById("sendModal").style.display="none"; document.getElementById("sendModalStatus").textContent=""; }
+window.openSend=()=>{ 
+  const modal=document.getElementById("sendModal");
+  if(modal) modal.style.display="flex"; 
+  highlightNav("navSend"); 
+}
+window.closeSend=()=>{ 
+  const modal=document.getElementById("sendModal");
+  if(modal) modal.style.display="none"; 
+  const status=document.getElementById("sendModalStatus");
+  if(status) status.textContent=""; 
+}
 
 /* SEND MESSAGE */
 window.sendMessage = async () => {
-  const recipient=document.getElementById("recipient").value.trim();
-  const text=document.getElementById("messageText").value.trim();
-  const statusModal=document.getElementById("sendModalStatus");
-  const statusMain=document.getElementById("sendStatus");
-  statusModal.textContent=""; statusMain.textContent="";
+  const recipient = document.getElementById("recipient");
+  const textEl = document.getElementById("messageText");
+  const statusModal = document.getElementById("sendModalStatus");
+  if(!recipient || !textEl || !statusModal){
+    console.error("Send modal elements not found");
+    return;
+  }
+
+  const recipientVal = recipient.value.trim();
+  const text = textEl.value.trim();
 
   if(text.length===0){ statusModal.textContent="Message cannot be empty"; statusModal.style.color="red"; return; }
   if(text.length>200){ statusModal.textContent="Message too long (max 200)"; statusModal.style.color="red"; return; }
 
   try{
-    const userDocSnap = await getDoc(doc(db,"users",recipient));
+    const userDocSnap = await getDoc(doc(db,"users",recipientVal));
     if(!userDocSnap.exists()){ statusModal.textContent="Recipient does not exist"; statusModal.style.color="red"; return; }
 
-    await addDoc(collection(db,"messages"),{ from:username, to:recipient, text:text, deleted:false, timestamp:Date.now() });
+    await addDoc(collection(db,"messages"),{
+      from: username,
+      to: recipientVal,
+      text: text,
+      deleted: false,
+      timestamp: Date.now()
+    });
+
     statusModal.textContent="Message sent successfully!"; statusModal.style.color="green";
-    statusMain.textContent="Message sent to "+recipient; statusMain.style.color="green";
-    document.getElementById("recipient").value=""; document.getElementById("messageText").value="";
+    recipient.value=""; textEl.value="";
     loadInbox();
     closeSend();
-  } catch(err){ console.error(err); statusModal.textContent="Error sending message"; statusModal.style.color="red"; statusMain.textContent="Error sending message"; statusMain.style.color="red"; }
+  } catch(err){ console.error(err); statusModal.textContent="Error sending message"; statusModal.style.color="red"; }
 }
 
 /* INITIAL LOAD */

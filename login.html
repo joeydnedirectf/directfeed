@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - DirectFeed</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
+  <style>
+    body { font-family: Arial; display:flex; justify-content:center; align-items:center; height:100vh; background:#f5f5f5; }
+    .login-container { background:white; padding:2rem; border-radius:8px; width:100%; max-width:400px; text-align:center; box-shadow:0 4px 8px rgba(0,0,0,0.1);}
+    h2 { margin-bottom:1.5rem; color:#0070f3;}
+    input { width:100%; padding:0.7rem; margin:0.5rem 0; border-radius:4px; border:1px solid #ccc; font-size:1rem;}
+    button { width:100%; padding:0.7rem; margin-top:1rem; background:#0070f3; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;}
+    button:hover { background:#0051a3;}
+  </style>
+</head>
+<body>
+
+<div class="login-container">
+  <h2>Login to DirectFeed</h2>
+  <input type="text" id="tag" placeholder="Your Tag" required>
+  <input type="password" id="password" placeholder="Password" required>
+  <button onclick="login()">Login</button>
+</div>
+
+<script>
+  // Replace with your Supabase project info
+  const supabaseUrl = 'https://bevymbmfaxpfplcoiuno.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJldnltYm1mYXhwZnBsY29pdW5vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NTY2MTksImV4cCI6MjA4OTAzMjYxOX0.Gf8VZ08-B3XlEfyE5PBJhmkIxXYZ6ONC4bdSSUV-HLI';
+  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+  async function login() {
+    const tag = document.getElementById('tag').value;
+    const password = document.getElementById('password').value;
+
+    if (!tag || !password) {
+      alert('Enter your tag and password!');
+      return;
+    }
+
+    // Check database for matching user
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('tag', tag)
+      .eq('password', password)
+      .single();
+
+    if (error || !data) {
+      alert('Invalid tag or password.');
+      return;
+    }
+
+    // Successful login → redirect to dashboard
+    window.location.href = 'dashboard.html';
+  }
+</script>
+
+</body>
+</html>

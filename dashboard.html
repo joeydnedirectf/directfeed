@@ -1,81 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Dashboard</title>
+
 <style>
-  body { 
-    font-family: Arial; 
-    margin: 0; 
-    padding: 0; 
-    height: 100vh; 
-    background: #f0f0f0; 
-  }
 
-  .top-right {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    text-align: right;
-  }
+body{
+font-family:Arial;
+margin:0;
+background:#f0f0f0;
+}
 
-  #user {
-    font-weight: bold;
-  }
+.top-right{
+position:absolute;
+top:20px;
+right:20px;
+text-align:right;
+}
 
-  #logoutBtn {
-    display: block;
-    margin-top: 10px;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    background: #007bff;
-    color: white;
-    cursor: pointer;
-  }
+button{
+margin-top:8px;
+padding:8px 16px;
+border:none;
+border-radius:4px;
+background:#007bff;
+color:white;
+cursor:pointer;
+}
+
 </style>
+
 </head>
+
 <body>
 
 <div class="top-right">
-  <div>Welcome, <span id="user"></span>!</div>
-  <button id="logoutBtn">Logout</button>
+Welcome, <span id="user"></span><br>
+<button id="logout">Logout</button>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+<script>
 
-// Firebase config (same as login.html)
-const firebaseConfig = {
-  apiKey: "AIzaSyCnE-UOw56IASUOU_qwBcF5YsBOOml9BRY",
-  authDomain: "directfeed-c3084.firebaseapp.com",
-  projectId: "directfeed-c3084",
-  storageBucket: "directfeed-c3084.firebasestorage.app",
-  messagingSenderId: "780676224282",
-  appId: "1:780676224282:web:8580ee6c3aa1738394c8a3"
-};
+const username=sessionStorage.getItem("loggedInUser");
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const username = sessionStorage.getItem("loggedInUser");
-const userSpan = document.getElementById("user");
-const logoutBtn = document.getElementById("logoutBtn");
-
-// Protect dashboard
-if(!username) {
-  window.location.href = "login.html";
-} else {
-  userSpan.textContent = username;
+if(!username){
+window.location.href="login.html";
 }
 
-// Logout
-logoutBtn.addEventListener("click", () => {
-  sessionStorage.removeItem("loggedInUser");
-  window.location.href = "login.html";
-});
+document.getElementById("user").textContent=username;
+
+document.getElementById("logout").onclick=()=>{
+sessionStorage.removeItem("loggedInUser");
+window.location.href="login.html";
+}
+
 </script>
 
 </body>

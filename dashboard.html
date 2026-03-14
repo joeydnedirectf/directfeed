@@ -100,7 +100,7 @@ document.getElementById("logoutBtn").onclick = ()=>{
   window.location.href="login.html"; 
 }
 
-/* SETTINGS NAVIGATION FIX */
+/* SETTINGS NAVIGATION */
 function openSettings(){ window.location.href="settings.html"; }
 document.getElementById("settingsBtn").onclick = openSettings;
 document.getElementById("navSettings").onclick = openSettings;
@@ -118,7 +118,6 @@ function highlightNav(id){
   document.getElementById(id).classList.add("active");
 }
 
-/* CONTENT AREA */
 const content=document.getElementById("content");
 
 /* INBOX */
@@ -188,22 +187,27 @@ window.openSend=()=>{ document.getElementById("sendModal").style.display="flex";
 window.closeSend=()=>{ document.getElementById("sendModal").style.display="none"; document.getElementById("sendModalStatus").textContent=""; }
 
 /* SEND MESSAGE */
-window.sendMessage=async()=>{
+window.sendMessage = async () => {
   const recipient=document.getElementById("recipient").value.trim();
   const text=document.getElementById("messageText").value.trim();
   const statusModal=document.getElementById("sendModalStatus");
   const statusMain=document.getElementById("sendStatus");
   statusModal.textContent=""; statusMain.textContent="";
-  if(text.length>200){ statusModal.textContent="Message too long"; statusModal.style.color="red"; return; }
+
+  if(text.length===0){ statusModal.textContent="Message cannot be empty"; statusModal.style.color="red"; return; }
+  if(text.length>200){ statusModal.textContent="Message too long (max 200)"; statusModal.style.color="red"; return; }
+
   try{
-    const userDoc=await getDoc(doc(db,"users",recipient));
-    if(!userDoc.exists()){ statusModal.textContent="User does not exist"; statusModal.style.color="red"; return; }
+    const userDocSnap = await getDoc(doc(db,"users",recipient));
+    if(!userDocSnap.exists()){ statusModal.textContent="Recipient does not exist"; statusModal.style.color="red"; return; }
+
     await addDoc(collection(db,"messages"),{ from:username, to:recipient, text:text, deleted:false, timestamp:Date.now() });
-    statusModal.textContent="Message sent successfully"; statusModal.style.color="green";
+    statusModal.textContent="Message sent successfully!"; statusModal.style.color="green";
     statusMain.textContent="Message sent to "+recipient; statusMain.style.color="green";
     document.getElementById("recipient").value=""; document.getElementById("messageText").value="";
     loadInbox();
-  } catch(e){ console.error(e); statusModal.textContent="Error sending message"; statusModal.style.color="red"; statusMain.textContent="Error sending message"; statusMain.style.color="red"; }
+    closeSend();
+  } catch(err){ console.error(err); statusModal.textContent="Error sending message"; statusModal.style.color="red"; statusMain.textContent="Error sending message"; statusMain.style.color="red"; }
 }
 
 /* INITIAL LOAD */

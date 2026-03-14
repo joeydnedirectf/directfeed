@@ -12,6 +12,25 @@ font-family:Arial;
 background:#f0f0f0;
 }
 
+/* top right user */
+
+.topRight{
+position:fixed;
+top:15px;
+right:20px;
+text-align:right;
+}
+
+.logoutBtn{
+margin-top:6px;
+padding:6px 10px;
+background:#007bff;
+border:none;
+color:white;
+cursor:pointer;
+border-radius:4px;
+}
+
 /* sidebar */
 
 .sidebar{
@@ -59,7 +78,7 @@ margin-left:220px;
 padding:20px;
 }
 
-/* messages */
+/* message rows */
 
 .messageRow{
 background:white;
@@ -81,7 +100,7 @@ border-radius:6px;
 border:1px solid #ddd;
 }
 
-/* buttons */
+/* delete buttons */
 
 .deleteBtn{
 background:red;
@@ -115,7 +134,7 @@ border-radius:50px;
 cursor:pointer;
 }
 
-/* modal */
+/* send modal */
 
 .modal{
 display:none;
@@ -133,7 +152,7 @@ align-items:center;
 background:white;
 padding:20px;
 border-radius:8px;
-width:300px;
+width:320px;
 }
 
 textarea{
@@ -141,12 +160,32 @@ width:100%;
 height:80px;
 }
 
+.status{
+margin-top:10px;
+font-size:14px;
+}
+
+.success{
+color:green;
+}
+
+.error{
+color:red;
+}
+
 </style>
 </head>
 
 <body>
 
-<!-- sidebar -->
+<!-- TOP RIGHT USER -->
+
+<div class="topRight">
+<div>Welcome, <span id="userDisplay"></span></div>
+<button class="logoutBtn" id="logoutBtn">Logout</button>
+</div>
+
+<!-- SIDEBAR -->
 
 <div class="sidebar" id="sidebar">
 
@@ -161,25 +200,27 @@ height:80px;
 
 <button class="sendBtn" onclick="openSend()">Send</button>
 
-<!-- send modal -->
+<!-- SEND MODAL -->
 
 <div class="modal" id="sendModal">
 <div class="modalContent">
 
 <h3>Send Message</h3>
 
-<input id="recipient" placeholder="Username">
+<input id="recipient" placeholder="Recipient username">
 
 <br><br>
 
-<textarea id="messageText" maxlength="200" placeholder="Message (200 max)"></textarea>
+<textarea id="messageText" maxlength="200" placeholder="Message (200 characters max)"></textarea>
 
-<br><br>
+<br>
+
+<div id="sendStatus" class="status"></div>
+
+<br>
 
 <button onclick="sendMessage()">Send</button>
 <button onclick="closeSend()">Cancel</button>
-
-<div id="sendError" style="color:red"></div>
 
 </div>
 </div>
@@ -201,9 +242,20 @@ appId:"1:780676224282:web:8580ee6c3aa1738394c8a3"
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
 
+/* USER */
+
 const username=sessionStorage.getItem("loggedInUser");
 
 if(!username){
+window.location.href="login.html";
+}
+
+document.getElementById("userDisplay").textContent=username;
+
+/* LOGOUT */
+
+document.getElementById("logoutBtn").onclick=()=>{
+sessionStorage.removeItem("loggedInUser");
 window.location.href="login.html";
 }
 
@@ -216,13 +268,15 @@ const nav=document.getElementById("sidebar");
 nav.style.width=nav.style.width==="0px"?"220px":"0px";
 }
 
-/* LOAD INBOX */
+/* INBOX */
 
 window.loadInbox=async()=>{
 
 content.innerHTML="<h2>Inbox</h2>";
 
-const q=query(collection(db,"messages"),where("to","==",username),where("deleted","==",false));
+const q=query(collection(db,"messages"),
+where("to","==",username),
+where("deleted","==",false));
 
 const snap=await getDocs(q);
 
@@ -233,7 +287,7 @@ const data=docu.data();
 const row=document.createElement("div");
 row.className="messageRow";
 
-row.innerHTML="<b>From:</b> "+data.from+"<br>"+data.text.substring(0,50);
+row.innerHTML="<b>From:</b> "+data.from+"<br>"+data.text.substring(0,60);
 
 row.onclick=()=>openMessage(docu.id,data);
 
@@ -252,10 +306,7 @@ content.innerHTML="";
 const box=document.createElement("div");
 box.className="fullMessage";
 
-box.innerHTML=
-
-"<h3>From: "+data.from+"</h3>"+
-"<p>"+data.text+"</p>";
+box.innerHTML="<h3>From: "+data.from+"</h3><p>"+data.text+"</p>";
 
 const del=document.createElement("button");
 del.className="deleteBtn";
@@ -278,7 +329,9 @@ window.loadTrash=async()=>{
 
 content.innerHTML="<h2>Trash</h2>";
 
-const q=query(collection(db,"messages"),where("to","==",username),where("deleted","==",true));
+const q=query(collection(db,"messages"),
+where("to","==",username),
+where("deleted","==",true));
 
 const snap=await getDocs(q);
 
@@ -289,7 +342,7 @@ const data=docu.data();
 const row=document.createElement("div");
 row.className="messageRow";
 
-row.innerHTML="<b>From:</b> "+data.from+"<br>"+data.text.substring(0,50);
+row.innerHTML="<b>From:</b> "+data.from+"<br>"+data.text.substring(0,60);
 
 row.onclick=()=>openTrash(docu.id,data);
 
@@ -308,10 +361,7 @@ content.innerHTML="";
 const box=document.createElement("div");
 box.className="fullMessage";
 
-box.innerHTML=
-
-"<h3>From: "+data.from+"</h3>"+
-"<p>"+data.text+"</p>";
+box.innerHTML="<h3>From: "+data.from+"</h3><p>"+data.text+"</p>";
 
 const del=document.createElement("button");
 del.className="permDelete";
@@ -336,6 +386,7 @@ document.getElementById("sendModal").style.display="flex";
 
 window.closeSend=()=>{
 document.getElementById("sendModal").style.display="none";
+document.getElementById("sendStatus").textContent="";
 }
 
 /* SEND MESSAGE */
@@ -344,25 +395,28 @@ window.sendMessage=async()=>{
 
 const recipient=document.getElementById("recipient").value.trim();
 const text=document.getElementById("messageText").value.trim();
-const error=document.getElementById("sendError");
+const status=document.getElementById("sendStatus");
 
-error.textContent="";
+status.textContent="";
+status.className="status";
 
 if(text.length>200){
-error.textContent="Message too long";
+status.textContent="Message too long";
+status.classList.add("error");
 return;
 }
 
-/* check user exists */
+/* CHECK USER EXISTS */
 
 const userDoc=await getDoc(doc(db,"users",recipient));
 
 if(!userDoc.exists()){
-error.textContent="User not found";
+status.textContent="User does not exist";
+status.classList.add("error");
 return;
 }
 
-/* send message */
+/* SEND MESSAGE */
 
 await addDoc(collection(db,"messages"),{
 
@@ -374,7 +428,15 @@ timestamp:Date.now()
 
 });
 
-closeSend();
+/* SUCCESS */
+
+status.textContent="Message sent successfully";
+status.classList.add("success");
+
+/* CLEAR FORM */
+
+document.getElementById("recipient").value="";
+document.getElementById("messageText").value="";
 
 }
 

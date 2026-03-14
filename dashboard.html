@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+<style>
+  body { font-family: Arial; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#f0f0f0; }
+  button { margin-top:20px; padding:10px 20px; border:none; border-radius:4px; background:#007bff; color:white; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<h1>Welcome, <span id="user"></span>!</h1>
+<button id="logoutBtn">Logout</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+
+// Firebase config (same as login.html)
+const firebaseConfig = {
+  apiKey: "AIzaSyCnE-UOw56IASUOU_qwBcF5YsBOOml9BRY",
+  authDomain: "directfeed-c3084.firebaseapp.com",
+  projectId: "directfeed-c3084",
+  storageBucket: "directfeed-c3084.firebasestorage.app",
+  messagingSenderId: "780676224282",
+  appId: "1:780676224282:web:8580ee6c3aa1738394c8a3"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const username = sessionStorage.getItem("loggedInUser");
+const userSpan = document.getElementById("user");
+const logoutBtn = document.getElementById("logoutBtn");
+
+// Protect dashboard
+if(!username) {
+  window.location.href = "login.html";
+} else {
+  userSpan.textContent = username;
+}
+
+// Logout
+logoutBtn.addEventListener("click", () => {
+  sessionStorage.removeItem("loggedInUser");
+  window.location.href = "login.html";
+});
+</script>
+
+</body>
+</html>

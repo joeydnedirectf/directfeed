@@ -126,7 +126,7 @@ body {
   cursor: pointer;
 }
 
-/* Send status (below send button) */
+/* Send status */
 #sendStatus {
   position: fixed;
   bottom: 20px;
@@ -237,6 +237,7 @@ window.loadInbox = async ()=>{
                   where("to","==",username),
                   where("deleted","==",false));
   const snap = await getDocs(q);
+  if(snap.empty) content.innerHTML += "<p>No messages.</p>";
   snap.forEach(docu=>{
     const data = docu.data();
     const row = document.createElement("div");
@@ -257,8 +258,10 @@ async function openMessage(id,data){
   del.className="deleteBtn";
   del.textContent = "Delete";
   del.onclick = async()=>{
-    await updateDoc(doc(db,"messages",id),{deleted:true});
-    loadInbox();
+    try {
+      await updateDoc(doc(db,"messages",id),{deleted:true});
+      loadInbox();
+    } catch(e){ console.error("Error deleting:", e); }
   }
   box.appendChild(del);
   content.appendChild(box);
@@ -271,6 +274,7 @@ window.loadTrash = async ()=>{
                   where("to","==",username),
                   where("deleted","==",true));
   const snap = await getDocs(q);
+  if(snap.empty) content.innerHTML += "<p>No messages in Trash.</p>";
   snap.forEach(docu=>{
     const data = docu.data();
     const row = document.createElement("div");
@@ -291,8 +295,10 @@ async function openTrash(id,data){
   del.className="permDelete";
   del.textContent = "Delete Permanently";
   del.onclick = async()=>{
-    await deleteDoc(doc(db,"messages",id));
-    loadTrash();
+    try {
+      await deleteDoc(doc(db,"messages",id));
+      loadTrash();
+    } catch(e){ console.error("Error deleting permanently:", e); }
   }
   box.appendChild(del);
   content.appendChild(box);
@@ -321,33 +327,45 @@ window.sendMessage = async ()=>{
     return;
   }
 
-  const userDoc = await getDoc(doc(db,"users",recipient));
-  if(!userDoc.exists()){
-    statusModal.textContent="User does not exist";
+  try {
+    const userDoc = await getDoc(doc(db,"users",recipient));
+    if(!userDoc.exists()){
+      statusModal.textContent="User does not exist";
+      statusModal.style.color="red";
+      return;
+    }
+
+    const docRef = await addDoc(collection(db,"messages"),{
+      from: username,
+      to: recipient,
+      text: text,
+      deleted: false,
+      timestamp: Date.now()
+    });
+
+    console.log("Message written with ID: ", docRef.id);
+    statusModal.textContent="Message sent successfully";
+    statusModal.style.color="green";
+
+    statusMain.textContent="Message sent to "+recipient;
+    statusMain.style.color="green";
+
+    document.getElementById("recipient").value="";
+    document.getElementById("messageText").value="";
+
+    // reload inbox automatically
+    loadInbox();
+
+  } catch(e){
+    console.error("Error sending message:", e);
+    statusModal.textContent="Error sending message";
     statusModal.style.color="red";
-    return;
+    statusMain.textContent="Error sending message";
+    statusMain.style.color="red";
   }
-
-  await addDoc(collection(db,"messages"),{
-    from: username,
-    to: recipient,
-    text: text,
-    deleted: false,
-    timestamp: Date.now()
-  });
-
-  statusModal.textContent="Message sent successfully";
-  statusModal.style.color="green";
-  statusMain.textContent="Message sent to "+recipient;
-  statusMain.style.color="green";
-
-  // clear form
-  document.getElementById("recipient").value="";
-  document.getElementById("messageText").value="";
 }
 
 loadInbox();
-
 </script>
 </body>
 </html>

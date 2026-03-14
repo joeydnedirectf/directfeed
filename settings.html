@@ -4,23 +4,70 @@
 <meta charset="UTF-8">
 <title>Settings</title>
 <style>
-body{margin:0;font-family:Arial; background:#f0f0f0;}
-.topBar{background:#222;color:white;padding:15px;display:flex;align-items:center;}
-.topBar button{margin-right:10px;padding:6px 10px;border:none;border-radius:4px;cursor:pointer;background:#007bff;color:white;}
-.content{padding:20px;}
-button{padding:10px 15px;margin-top:10px;border:none;border-radius:4px;cursor:pointer;}
-.changePass{background:#007bff;color:white;}
-.deleteAcc{background:red;color:white;}
+body {margin:0;font-family:Arial;background:#f0f0f0;display:flex;}
+
+/* SIDEBAR */
+.sidebar {
+  position: fixed;
+  left:0;
+  top:0;
+  height:100%;
+  width:250px;
+  background:#1a1a1a;
+  color:white;
+  transition: width 0.3s;
+  display:flex;
+  flex-direction:column;
+}
+.sidebar.collapsed { width:60px; }
+.sidebar .logo { font-size:22px; text-align:center; padding:15px 0; font-weight:bold; border-bottom:1px solid #333; }
+.sidebar button {
+  display:flex;
+  align-items:center;
+  width:100%;
+  padding:12px 20px;
+  border:none;
+  background:none;
+  color:white;
+  cursor:pointer;
+  text-align:left;
+  font-size:16px;
+  transition:background 0.2s;
+}
+.sidebar button:hover { background:#333; }
+.sidebar button i { margin-right:10px; font-style:normal; width:20px; text-align:center; }
+.sidebar button.active { background:#444; }
+
+/* TOGGLE BUTTON */
+.toggleBtn { background:#444; border:none; color:white; cursor:pointer; font-size:18px; padding:10px; text-align:left; }
+
+/* CONTENT */
+.content { margin-left:250px; padding:20px; transition: margin-left 0.3s; flex:1; }
+h2 { margin-top:0; }
+
+/* USER INFO / SETTINGS BUTTONS */
+.userInfo { margin-bottom:20px; font-size:18px; }
+button { padding:10px 15px; margin-top:10px; border:none; border-radius:4px; cursor:pointer; }
+.changePass { background:#007bff; color:white; }
+.deleteAcc { background:red; color:white; }
 </style>
 </head>
 <body>
 
-<div class="topBar">
-  <button onclick="goBack()">← Back</button>
-  <span id="settingsUser"></span>
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="logo">DirectFeed</div>
+  <button class="toggleBtn" onclick="toggleSidebar()">☰</button>
+  <button id="navInbox" onclick="loadInbox()"><i>📥</i><span class="label">Inbox</span></button>
+  <button id="navTrash" onclick="loadTrash()"><i>🗑️</i><span class="label">Trash</span></button>
+  <button id="navSend" onclick="openSend()"><i>✉️</i><span class="label">Send</span></button>
+  <button id="navSettings" class="active" onclick="loadSettings()"><i>⚙️</i><span class="label">Settings</span></button>
 </div>
 
-<div class="content">
+<!-- CONTENT -->
+<div class="content" id="content">
+  <h2>Settings</h2>
+  <div class="userInfo">Username: <span id="settingsUser"></span></div>
   <button class="changePass" onclick="changePassword()">Change Password</button><br>
   <button class="deleteAcc" onclick="deleteAccount()">Delete Account</button>
 </div>
@@ -38,25 +85,45 @@ const firebaseConfig = {
   appId:"1:780676224282:web:8580ee6c3aa1738394c8a3"
 };
 
-const app=initializeApp(firebaseConfig);
-const db=getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-let username=sessionStorage.getItem("loggedInUser");
+/* SESSION LOGIN */
+let username = sessionStorage.getItem("loggedInUser");
 if(!username) window.location.href="login.html";
-document.getElementById("settingsUser").textContent = "Username: "+username;
+document.getElementById("settingsUser").textContent = username;
 
-window.goBack = ()=>{ window.location.href="dashboard.html"; }
+/* SIDEBAR TOGGLE */
+function toggleSidebar(){
+  const sb = document.getElementById("sidebar");
+  sb.classList.toggle("collapsed");
+  document.querySelector(".content").style.marginLeft = sb.classList.contains("collapsed")?"60px":"250px";
+}
+
+/* NAVIGATION */
+function highlightNav(id){
+  ["navInbox","navTrash","navSend","navSettings"].forEach(b=>document.getElementById(b).classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+/* SETTINGS FUNCTIONS */
+window.loadSettings = ()=>{
+  highlightNav("navSettings");
+  document.getElementById("content").innerHTML = `
+    <h2>Settings</h2>
+    <div class="userInfo">Username: ${username}</div>
+    <button class="changePass" onclick="changePassword()">Change Password</button><br>
+    <button class="deleteAcc" onclick="deleteAccount()">Delete Account</button>
+  `;
+}
 
 window.changePassword = async ()=>{
   let newPass = prompt("Enter new password (will be hashed SHA256 before saving):");
   if(!newPass) return;
-
-  // Hashing SHA256 in browser
   const msgUint8 = new TextEncoder().encode(newPass);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(b=>b.toString(16).padStart(2,'0')).join('');
-
   await updateDoc(doc(db,"users",username),{password:hashHex});
   alert("Password updated successfully!");
 }
@@ -68,7 +135,12 @@ window.deleteAccount = async ()=>{
   alert("Account deleted. Returning to login.");
   window.location.href="login.html";
 }
-</script>
 
+/* SIDEBAR NAVIGATION HANDLERS */
+window.loadInbox = ()=>{ window.location.href="dashboard.html"; }
+window.loadTrash = ()=>{ window.location.href="dashboard.html"; }
+window.openSend = ()=>{ window.location.href="dashboard.html"; }
+window.loadSettings();
+</script>
 </body>
 </html>

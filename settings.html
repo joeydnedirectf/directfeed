@@ -1,66 +1,84 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DirectFeed Settings</title>
+<title>Settings</title>
 <style>
-/* RESET & BODY */
-* { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-body { background:#f5f6fa; color:#333; display:flex; flex-direction:column; min-height:100vh; }
+/* --- GLOBAL --- */
+body {margin:0;font-family:Arial,sans-serif;background:#f0f0f0;display:flex;}
+button{cursor:pointer;border:none;border-radius:4px;padding:10px 16px;font-weight:bold;}
+h1,h2,h3,p{margin:0 0 10px 0;}
 
-/* TOPBAR */
-.topbar {
-  width:100%; padding:15px 20px; background:#2f3640; color:white; display:flex; align-items:center; justify-content:center;
-  position:fixed; top:0; left:0; z-index:1000;
+/* --- SIDEBAR --- */
+.sidebar {
+  position:fixed; left:0; top:0; height:100%; width:250px;
+  background:#1a1a1a;color:white; display:flex; flex-direction:column;
+  transition:width 0.3s;
 }
-.topbar .backBtn {
-  position:absolute; left:15px; background:#00a8ff; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; color:white;
-}
-.topbar h1 { font-size:22px; font-weight:bold; color:white; }
+.sidebar.collapsed{width:60px;}
+.sidebar .logo{font-size:22px;text-align:center;padding:15px 0;font-weight:bold;border-bottom:1px solid #333;}
+.sidebar button{display:flex;align-items:center;width:100%;padding:12px 20px;background:none;color:white;text-align:left;font-size:16px;transition:background 0.2s;margin:0;}
+.sidebar button:hover{background:#333;}
+.sidebar button i{margin-right:10px;font-style:normal;width:20px;text-align:center;}
+.sidebar button.active{background:#444;}
+.toggleBtn{background:#444;border:none;color:white;cursor:pointer;font-size:18px;padding:10px;text-align:left;}
 
-/* CONTENT */
-.content { flex:1; margin-top:70px; padding:25px; max-width:480px; margin-left:auto; margin-right:auto; }
+/* --- CONTENT --- */
+.content{margin-left:250px;padding:30px;transition:margin-left 0.3s;flex:1;background:#f0f0f0;min-height:100vh;}
+.backBtn{background:#888;color:white;margin-bottom:20px;}
+.settingsHeader{text-align:center;margin-bottom:30px;}
+.settingsHeader h1{font-size:28px;font-weight:bold;color:black;}
+.userBox{background:white;padding:15px;border-radius:8px;text-align:center;margin-bottom:20px;font-weight:bold;}
+.settingsSection{background:white;padding:20px;border-radius:8px;margin-bottom:20px;}
+.settingsSection input{width:100%;padding:8px;margin:6px 0;border:1px solid #ccc;border-radius:4px;}
 
-/* USER BOX */
-.userBox { background:white; padding:15px 20px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); text-align:center; margin-bottom:25px; }
-.userBox span { font-weight:bold; font-size:18px; color:#2f3640; }
+/* --- ACTION BUTTONS --- */
+.changePass{background:#007bff;color:white;width:100%;}
+.deleteAcc{background:red;color:white;width:100%;}
 
-/* BUTTONS & FORMS */
-.formGroup { margin-bottom:20px; display:flex; flex-direction:column; gap:10px; }
-.formGroup input { padding:10px; border:1px solid #ccc; border-radius:6px; }
-button { padding:10px 16px; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-size:14px; }
-.resetPassBtn { background:#00a8ff; color:white; }
-.deleteAccBtn { background:#e84118; color:white; }
-
-/* SMALL TEXT / STATUS */
-#statusMsg { font-size:14px; margin-top:10px; color:#e84118; }
+/* --- STATUS MESSAGE --- */
+.statusMsg{margin-top:10px;font-size:14px;}
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <button class="backBtn" id="backBtn">← Back</button>
-  <h1>Settings</h1>
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="logo">DirectFeed</div>
+  <button class="toggleBtn" onclick="toggleSidebar()">☰</button>
+  <button id="navInbox"><i>📥</i><span class="label">Inbox</span></button>
+  <button id="navTrash"><i>🗑️</i><span class="label">Trash</span></button>
+  <button id="navSend"><i>✉️</i><span class="label">Send</span></button>
+  <button id="navSettings" class="active"><i>⚙️</i><span class="label">Settings</span></button>
 </div>
 
-<div class="content">
-  <div class="userBox">
-    Username: <span id="settingsUser"></span>
+<!-- CONTENT -->
+<div class="content" id="content">
+
+  <button class="backBtn" onclick="goBack()">← Back to Dashboard</button>
+
+  <div class="settingsHeader">
+    <h1>Settings</h1>
   </div>
 
-  <div class="formGroup">
-    <label>New Password:</label>
-    <input type="password" id="newPass" placeholder="Enter new password">
-    <label>Confirm Password:</label>
+  <div class="userBox" id="userBox">Username: </div>
+
+  <!-- CHANGE PASSWORD -->
+  <div class="settingsSection">
+    <h3>Reset Password</h3>
+    <input type="password" id="newPass" placeholder="New password">
     <input type="password" id="confirmPass" placeholder="Retype password">
-    <button class="resetPassBtn" id="resetPassBtn">Reset Password</button>
-    <div id="statusMsg"></div>
+    <button class="changePass" onclick="changePassword()">Change Password</button>
+    <div class="statusMsg" id="passStatus"></div>
   </div>
 
-  <div class="formGroup">
-    <button class="deleteAccBtn" id="deleteAccBtn">Delete Account</button>
+  <!-- DELETE ACCOUNT -->
+  <div class="settingsSection">
+    <h3>Delete Account</h3>
+    <button class="deleteAcc" onclick="deleteAccount()">Delete Account</button>
+    <div class="statusMsg" id="deleteStatus"></div>
   </div>
+
 </div>
 
 <script type="module">
@@ -79,55 +97,80 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+/* SESSION LOGIN */
 let username = sessionStorage.getItem("loggedInUser");
 if(!username) window.location.href="login.html";
-document.getElementById("settingsUser").textContent = username;
+document.getElementById("userBox").textContent = "Username: " + username;
+
+/* SIDEBAR TOGGLE */
+function toggleSidebar(){
+  const sb=document.getElementById("sidebar");
+  sb.classList.toggle("collapsed");
+  document.querySelector(".content").style.marginLeft=sb.classList.contains("collapsed")?"60px":"250px";
+}
+
+/* NAVIGATION HANDLERS */
+document.getElementById("navInbox").onclick = ()=>{ window.location.href="dashboard.html"; }
+document.getElementById("navTrash").onclick = ()=>{ window.location.href="dashboard.html"; }
+document.getElementById("navSend").onclick = ()=>{ window.location.href="dashboard.html"; }
+document.getElementById("navSettings").onclick = ()=>{ loadSettings(); }
 
 /* BACK BUTTON */
-document.getElementById("backBtn").onclick = ()=>{ window.location.href="dashboard.html"; }
+function goBack(){ window.location.href="dashboard.html"; }
 
-/* RESET PASSWORD */
-document.getElementById("resetPassBtn").onclick = async ()=>{
-  const pass=document.getElementById("newPass").value;
-  const confirm=document.getElementById("confirmPass").value;
-  const status=document.getElementById("statusMsg");
+/* CHANGE PASSWORD */
+async function changePassword(){
+  const newPass=document.getElementById("newPass").value.trim();
+  const confirmPass=document.getElementById("confirmPass").value.trim();
+  const status=document.getElementById("passStatus");
 
-  if(!pass || !confirm){ status.textContent="Please fill both fields."; return; }
-  if(pass!==confirm){ status.textContent="Passwords do not match."; return; }
-
-  // Hash password
-  const encoder=new TextEncoder();
-  const data=encoder.encode(pass);
-  const hashBuffer=await crypto.subtle.digest('SHA-256',data);
-  const hashArray=Array.from(new Uint8Array(hashBuffer));
-  const hashHex=hashArray.map(b=>b.toString(16).padStart(2,'0')).join('');
+  if(!newPass || !confirmPass){
+    status.style.color="red";
+    status.textContent="Please fill both fields.";
+    return;
+  }
+  if(newPass!==confirmPass){
+    status.style.color="red";
+    status.textContent="Passwords do not match.";
+    return;
+  }
 
   try{
+    const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(newPass));
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b=>b.toString(16).padStart(2,'0')).join('');
     await updateDoc(doc(db,"users",username),{password:hashHex});
     status.style.color="green";
     status.textContent="Password updated successfully!";
     document.getElementById("newPass").value="";
     document.getElementById("confirmPass").value="";
-  }catch(err){
-    console.error(err);
+  } catch(err){
+    console.error("Update password error:", err);
     status.style.color="red";
-    status.textContent="Error updating password.";
+    status.textContent="Error updating password: " + err.message;
   }
-};
+}
 
 /* DELETE ACCOUNT */
-document.getElementById("deleteAccBtn").onclick = async ()=>{
+async function deleteAccount(){
+  const status=document.getElementById("deleteStatus");
   if(!confirm("Are you sure you want to delete your DirectFeed account?")) return;
   try{
     await deleteDoc(doc(db,"users",username));
     sessionStorage.removeItem("loggedInUser");
-    alert("Account deleted successfully.");
+    alert("Account deleted. Returning to login.");
     window.location.href="login.html";
-  }catch(err){
-    console.error(err);
-    alert("Error deleting account.");
+  } catch(err){
+    console.error("Delete account error:", err);
+    status.style.color="red";
+    status.textContent="Error deleting account: " + err.message;
   }
-};
+}
+
+/* INITIAL LOAD */
+function loadSettings(){ document.getElementById("content").style.display="block"; }
+loadSettings();
+
 </script>
 </body>
 </html>

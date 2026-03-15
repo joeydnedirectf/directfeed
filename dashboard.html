@@ -5,38 +5,33 @@
 <title>Dashboard - DirectFeed</title>
 <style>
 body {margin:0;font-family:Arial,sans-serif;background:#f0f0f0;display:flex;}
+
 /* SIDEBAR */
-.sidebar {position:fixed;left:0;top:0;height:100%;width:220px;background:#1a1a1a;color:white;transition:width 0.3s;display:flex;flex-direction:column;}
+.sidebar {position:fixed;left:0;top:0;height:100%;width:250px;background:#1a1a1a;color:white;transition:width 0.3s;display:flex;flex-direction:column;}
 .sidebar.collapsed{width:60px;}
 .sidebar .logo{font-size:22px;text-align:center;padding:15px 0;font-weight:bold;border-bottom:1px solid #333;}
-.sidebar button{display:flex;align-items:center;width:100%;padding:12px 18px;border:none;background:none;color:white;cursor:pointer;text-align:left;font-size:16px;transition:background 0.2s;}
+.sidebar button{display:flex;align-items:center;width:100%;padding:12px 20px;border:none;background:none;color:white;cursor:pointer;text-align:left;font-size:16px;transition:background 0.2s;}
 .sidebar button:hover{background:#333;}
-.sidebar button i{margin-right:10px;font-style:normal;width:25px;text-align:center;}
+.sidebar button i{margin-right:10px;font-style:normal;width:20px;text-align:center;}
 .sidebar button.active{background:#444;}
 .toggleBtn{background:#444;border:none;color:white;cursor:pointer;font-size:18px;padding:10px;text-align:left;}
 
 /* CONTENT */
-.content{margin-left:220px;padding:20px;transition:margin-left 0.3s;flex:1;}
+.content{margin-left:250px;padding:20px;transition:margin-left 0.3s;flex:1;}
 h2{margin-top:0;}
 
 /* TOP RIGHT */
 .topRight{position:fixed;top:15px;right:20px;text-align:right;}
-.topRight span{margin-right:10px;}
 .topRight button{margin-left:5px;padding:6px 10px;border:none;cursor:pointer;border-radius:4px;}
 #logoutBtn{background:#007bff;color:white;}
 #settingsBtn{background:#888;color:white;}
 
 /* MESSAGE ROWS */
 .messageRow{background:white;padding:15px;margin-bottom:10px;border-radius:6px;cursor:pointer;border:1px solid #ddd;}
-.messageRow:hover{background:#f7f7f7;}
 .fullMessage{background:white;padding:20px;border-radius:6px;border:1px solid #ddd;}
 .deleteBtn{background:red;color:white;border:none;padding:10px;margin-top:10px;cursor:pointer;}
-.permDelete{background:black;color:white;border:none;padding:10px;margin-top:10px;cursor:pointer;}
-.replyBtn{background:#28a745;color:white;border:none;padding:10px;margin-top:10px;cursor:pointer;}
-.favoriteBtn{background:#ff9800;color:white;border:none;padding:10px;margin-top:10px;cursor:pointer;}
 .sendBtn{position:fixed;bottom:60px;right:20px;background:#007bff;color:white;border:none;padding:16px 22px;border-radius:50px;cursor:pointer;}
 #sendStatus{position:fixed;bottom:20px;right:20px;font-size:14px;}
-.divider{margin:10px 0;border-top:1px dashed #aaa;font-size:12px;padding-top:2px;}
 .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);justify-content:center;align-items:center;}
 .modalContent{background:white;padding:20px;border-radius:8px;width:320px;}
 textarea{width:100%;height:80px;}
@@ -81,6 +76,7 @@ input{width:100%;padding:6px;}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
+// Firebase config
 const firebaseConfig = {
   apiKey:"AIzaSyCnE-UOw56IASUOU_qwBcF5YsBOOml9BRY",
   authDomain:"directfeed-c3084.firebaseapp.com",
@@ -92,189 +88,155 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+/* SESSION LOGIN */
 let username = sessionStorage.getItem("loggedInUser");
 if(!username) window.location.href="login.html";
 document.getElementById("userDisplay").textContent=username;
 
-document.getElementById("logoutBtn").onclick = ()=>{ 
-  sessionStorage.removeItem("loggedInUser"); 
-  window.location.href="login.html"; 
+/* LOGOUT */
+document.getElementById("logoutBtn").onclick=()=>{
+  sessionStorage.removeItem("loggedInUser");
+  window.location.href="login.html";
 }
 
+/* SETTINGS NAVIGATION */
 function openSettings(){ window.location.href="settings.html"; }
 document.getElementById("settingsBtn").onclick=openSettings;
 document.getElementById("navSettings").onclick=openSettings;
 
+/* SIDEBAR TOGGLE */
 function toggleSidebar(){
   const sb=document.getElementById("sidebar");
   sb.classList.toggle("collapsed");
-  document.querySelector(".content").style.marginLeft=sb.classList.contains("collapsed")?"60px":"220px";
+  document.querySelector(".content").style.marginLeft=sb.classList.contains("collapsed")?"60px":"250px";
 }
 
+/* HIGHLIGHT NAV */
 function highlightNav(id){
   ["navInbox","navTrash","navSend","navSettings"].forEach(b=>document.getElementById(b).classList.remove("active"));
-  document.getElementById(id).classList.add("active");
+  const el=document.getElementById(id);
+  if(el) el.classList.add("active");
 }
 
 const content=document.getElementById("content");
 
-window.replyTarget=null;
-
-// INBOX
+/* INBOX */
 async function loadInbox(){
   highlightNav("navInbox");
   content.innerHTML="<h2>Inbox</h2>";
-  const q=query(collection(db,"messages"), where("to","==",username));
+  const q=query(collection(db,"messages"), where("to","==",username), where("deleted","==",false));
   const snap=await getDocs(q);
-  if(snap.empty) content.innerHTML+="<p>No messages.</p>";
+  if(snap.empty){ content.innerHTML+="<p>No messages.</p>"; return; }
   snap.forEach(docu=>{
     const data=docu.data();
-    if(data.deleted) return; // skip trashed
     const row=document.createElement("div");
     row.className="messageRow";
-    let displayText=data.text.substring(0,60);
-    if(data.replyTo) displayText="<div class='divider'>Replied to: "+data.replyTo+"</div>"+displayText;
-    row.innerHTML="<b>From:</b> "+data.from+"<br>"+displayText+"<br><small>"+new Date(data.timestamp).toLocaleString()+"</small>";
+    const date=new Date(data.timestamp).toLocaleString();
+    row.innerHTML=`<b>From:</b> ${data.from}<br>${data.text.substring(0,60)}<br><small>${date}</small>`;
     row.onclick=()=>openMessage(docu.id,data);
     content.appendChild(row);
   });
 }
 
-// OPEN MESSAGE
+/* OPEN MESSAGE */
 async function openMessage(id,data){
   content.innerHTML="";
   const box=document.createElement("div");
   box.className="fullMessage";
-  let textDisplay=data.text;
-  if(data.replyTo) textDisplay="<div class='divider'>Replied to: "+data.replyTo+"</div>"+textDisplay;
-  box.innerHTML="<h3>From: "+data.from+"</h3><p>"+textDisplay+"</p><small>Sent: "+new Date(data.timestamp).toLocaleString()+"</small>";
-
+  const date=new Date(data.timestamp).toLocaleString();
+  box.innerHTML=`<h3>From: ${data.from}</h3><p>${data.text}</p><small>Sent: ${date}</small>`;
   const del=document.createElement("button");
   del.className="deleteBtn";
-  del.textContent="Move to Trash";
-  del.onclick=async()=>{
-    await updateDoc(doc(db,"messages",id),{deleted:true});
-    loadInbox();
-  }
-
-  const reply=document.createElement("button");
-  reply.className="replyBtn";
-  reply.textContent="Reply";
-  reply.onclick=()=>{
-    window.replyTarget=data.from;
-    openSend();
-  }
-
-  const fav=document.createElement("button");
-  fav.className="favoriteBtn";
-  fav.textContent=data.favorite?"Unfavorite":"Favorite";
-  fav.onclick=async()=>{
-    await updateDoc(doc(db,"messages",id),{favorite:!data.favorite});
-    loadInbox();
-  }
-
+  del.textContent="Delete";
+  del.onclick=async()=>{ await updateDoc(doc(db,"messages",id),{deleted:true}); loadInbox(); }
   box.appendChild(del);
-  box.appendChild(reply);
-  box.appendChild(fav);
   content.appendChild(box);
 }
 
-// TRASH
+/* TRASH */
 async function loadTrash(){
   highlightNav("navTrash");
   content.innerHTML="<h2>Trash</h2>";
-  const q=query(collection(db,"messages"), where("to","==",username));
+  const q=query(collection(db,"messages"), where("to","==",username), where("deleted","==",true));
   const snap=await getDocs(q);
-  if(snap.empty) content.innerHTML+="<p>No messages.</p>";
+  if(snap.empty){ content.innerHTML+="<p>No messages in Trash.</p>"; return; }
   snap.forEach(docu=>{
     const data=docu.data();
-    if(!data.deleted) return; // skip inbox
     const row=document.createElement("div");
     row.className="messageRow";
-    row.innerHTML="<b>From:</b> "+data.from+"<br>"+data.text.substring(0,60);
+    const date=new Date(data.timestamp).toLocaleString();
+    row.innerHTML=`<b>From:</b> ${data.from}<br>${data.text.substring(0,60)}<br><small>${date}</small>`;
     row.onclick=()=>openTrash(docu.id,data);
     content.appendChild(row);
   });
 }
 
-// OPEN TRASH
+/* OPEN TRASH */
 async function openTrash(id,data){
   content.innerHTML="";
   const box=document.createElement("div");
   box.className="fullMessage";
-  box.innerHTML="<h3>From: "+data.from+"</h3><p>"+data.text+"</p>";
-
+  const date=new Date(data.timestamp).toLocaleString();
+  box.innerHTML=`<h3>From: ${data.from}</h3><p>${data.text}</p><small>Sent: ${date}</small>`;
+  
   const restoreBtn=document.createElement("button");
-  restoreBtn.className="replyBtn";
+  restoreBtn.className="deleteBtn";
   restoreBtn.style.background="green";
   restoreBtn.textContent="Restore to Inbox";
-  restoreBtn.onclick=async()=>{
-    await updateDoc(doc(db,"messages",id),{deleted:false});
-    loadTrash();
-  }
+  restoreBtn.onclick=async()=>{ await updateDoc(doc(db,"messages",id),{deleted:false}); loadTrash(); }
 
-  const permDel=document.createElement("button");
-  permDel.className="permDelete";
-  permDel.textContent="Delete Permanently";
-  permDel.onclick=async()=>{
-    await deleteDoc(doc(db,"messages",id));
-    loadTrash();
-  }
+  const del=document.createElement("button");
+  del.className="deleteBtn";
+  del.textContent="Delete Permanently";
+  del.style.background="black";
+  del.onclick=async()=>{ await deleteDoc(doc(db,"messages",id)); loadTrash(); }
 
   box.appendChild(restoreBtn);
-  box.appendChild(permDel);
+  box.appendChild(del);
   content.appendChild(box);
 }
 
-// SEND MODAL
-function openSend(){
+/* SEND MODAL */
+function openSend(){ 
   const modal=document.getElementById("sendModal");
-  if(modal) modal.style.display="flex";
-  highlightNav("navSend");
+  if(modal) modal.style.display="flex"; 
+  highlightNav("navSend"); 
 }
-function closeSend(){
+function closeSend(){ 
   const modal=document.getElementById("sendModal");
-  if(modal) modal.style.display="none";
+  if(modal) modal.style.display="none"; 
   const status=document.getElementById("sendModalStatus");
-  if(status) status.textContent="";
-  window.replyTarget=null;
+  if(status) status.textContent=""; 
 }
-document.getElementById("navSend").onclick=openSend;
-document.getElementById("navInbox").onclick=loadInbox;
-document.getElementById("navTrash").onclick=loadTrash;
 
-// SEND MESSAGE
+/* SEND MESSAGE */
 async function sendMessage(){
   const recipient=document.getElementById("recipient").value.trim();
   const text=document.getElementById("messageText").value.trim();
   const status=document.getElementById("sendModalStatus");
-
-  if(!recipient || !text){ status.textContent="Fill all fields"; status.style.color="red"; return; }
+  if(!recipient || !text){ status.textContent="Recipient and message required"; status.style.color="red"; return; }
   try{
-    const recipientSnap=await getDoc(doc(db,"users",recipient));
-    if(!recipientSnap.exists()){ status.textContent="Recipient not found"; status.style.color="red"; return; }
-
-    await addDoc(collection(db,"messages"),{
-      from: username,
-      to: recipient,
-      text: text,
-      deleted:false,
-      timestamp:Date.now(),
-      favorite:false,
-      replyTo:window.replyTarget || null
-    });
+    const userSnap=await getDoc(doc(db,"users",recipient));
+    if(!userSnap.exists()){ status.textContent="Recipient does not exist"; status.style.color="red"; return; }
+    await addDoc(collection(db,"messages"),{from:username,to:recipient,text:text,deleted:false,timestamp:Date.now()});
     status.textContent="Message sent!";
     status.style.color="green";
     document.getElementById("recipient").value="";
     document.getElementById("messageText").value="";
     closeSend();
     loadInbox();
-  } catch(e){ console.error(e); status.textContent="Error sending"; status.style.color="red"; }
+  }catch(err){ console.error(err); status.textContent="Error sending message"; status.style.color="red"; }
 }
-document.getElementById("sendButton").onclick=sendMessage;
-document.getElementById("cancelSendBtn").onclick=closeSend;
 
-// INITIAL LOAD
+document.getElementById("sendButton")?.addEventListener("click",sendMessage);
+document.getElementById("cancelSendBtn")?.addEventListener("click",closeSend);
+
+/* NAV BUTTONS */
+document.getElementById("navInbox").onclick=loadInbox;
+document.getElementById("navTrash").onclick=loadTrash;
+document.getElementById("navSend").onclick=openSend;
+
+/* INITIAL LOAD */
 loadInbox();
 </script>
 </body>

@@ -21,7 +21,6 @@ h2{margin-top:0;}
 button{padding:10px 15px;margin:5px 0;border:none;border-radius:4px;cursor:pointer;}
 .changePass{background:#007bff;color:white;}
 .deleteAcc{background:red;color:white;}
-.securityToggle{background:#28a745;color:white;}
 </style>
 </head>
 <body>
@@ -40,14 +39,12 @@ button{padding:10px 15px;margin:5px 0;border:none;border-radius:4px;cursor:point
 <h2>Settings</h2>
 <div>User: <span id="settingsUser"></span></div>
 <button class="changePass" onclick="changePassword()">Change Password</button><br>
-<button class="deleteAcc" onclick="deleteAccount()">Delete Account</button><br>
-<button class="securityToggle" onclick="toggleSecurity()">Enable/Disable Security Code</button><br>
-<div id="securityStatus"></div>
+<button class="deleteAcc" onclick="deleteAccount()">Delete Account</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getFirestore, doc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+import { getFirestore, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey:"AIzaSyCnE-UOw56IASUOU_qwBcF5YsBOOml9BRY",
@@ -63,23 +60,6 @@ const db = getFirestore(app);
 let username=sessionStorage.getItem("loggedInUser");
 if(!username) window.location.href="login.html";
 document.getElementById("settingsUser").textContent=username;
-
-async function refreshSecurityStatus(){
-  const snap=await getDoc(doc(db,"users",username));
-  if(!snap.exists()) return;
-  const enabled=snap.data().securityCodeEnabled;
-  document.getElementById("securityStatus").textContent="Security Code is "+(enabled?"ENABLED":"DISABLED");
-}
-
-async function toggleSecurity(){
-  const userRef=doc(db,"users",username);
-  const snap=await getDoc(userRef);
-  const enabled=snap.data().securityCodeEnabled||false;
-  await updateDoc(userRef,{securityCodeEnabled:!enabled});
-  refreshSecurityStatus();
-}
-
-refreshSecurityStatus();
 
 window.changePassword=async()=>{
   let newPass=prompt("Enter new password (will be hashed SHA256 before saving):");

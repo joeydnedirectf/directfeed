@@ -321,42 +321,58 @@ content.appendChild(div);
 
 
 /* OPEN MESSAGE */
-
 function openMessage(id,data){
 
 content.innerHTML="";
 
 const box=document.createElement("div");
-
 box.className="fullMessage";
 
 box.innerHTML="<h3>From: "+data.from+"</h3><p>"+data.text+"</p>";
 
+/* DELETE BUTTON */
+
 const del=document.createElement("button");
-
 del.className="deleteBtn";
-
 del.textContent="Delete";
 
 del.onclick=async()=>{
 
 await updateDoc(doc(db,"messages",id),{
-
 deleted:true
-
 });
 
 loadInbox();
 
 };
 
+/* REPLY BUTTON */
+
+const reply=document.createElement("button");
+reply.textContent="Reply";
+reply.style.marginLeft="10px";
+
+reply.onclick=()=>{
+
+openSend();
+
+/* auto fill recipient */
+
+document.getElementById("recipient").value=data.from;
+
+/* remember which message we reply to */
+
+window.replyTarget=id;
+
+};
+
 box.appendChild(del);
+box.appendChild(reply);
 
 content.appendChild(box);
 
 }
-
-
+  
 /* TRASH */
 
 window.loadTrash = async function(){
@@ -431,10 +447,12 @@ await addDoc(collection(db,"messages"),{
 from:username,
 to:recipient,
 text:text,
+replyTo: window.replyTarget || null,
 deleted:false,
 timestamp:Date.now()
-
 });
+
+window.replyTarget = null;
 
 status.textContent="Sent!";
 
@@ -442,7 +460,6 @@ document.getElementById("recipient").value="";
 document.getElementById("messageText").value="";
 
 closeSend();
-
 loadInbox();
 
 }

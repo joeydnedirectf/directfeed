@@ -5,6 +5,7 @@
 <title>Dashboard</title>
 
 <style>
+
 body{
 margin:0;
 font-family:Arial;
@@ -12,12 +13,14 @@ background:#f0f0f0;
 display:flex;
 }
 
+/* SIDEBAR */
+
 .sidebar{
 position:fixed;
 left:0;
 top:0;
 height:100%;
-width:250px;
+width:240px;
 background:#1a1a1a;
 color:white;
 display:flex;
@@ -25,7 +28,7 @@ flex-direction:column;
 }
 
 .sidebar button{
-padding:14px;
+padding:15px;
 border:none;
 background:none;
 color:white;
@@ -38,11 +41,36 @@ font-size:16px;
 background:#333;
 }
 
+/* CONTENT */
+
 .content{
-margin-left:250px;
+margin-left:240px;
 padding:20px;
 flex:1;
 }
+
+/* TOP RIGHT BAR */
+
+.topRight{
+position:fixed;
+top:15px;
+right:20px;
+}
+
+.topRight button{
+margin-left:6px;
+padding:6px 12px;
+border:none;
+border-radius:4px;
+cursor:pointer;
+}
+
+#logoutBtn{
+background:#007bff;
+color:white;
+}
+
+/* MESSAGE ROW */
 
 .messageRow{
 background:white;
@@ -56,6 +84,8 @@ border:1px solid #ddd;
 .messageRow:hover{
 background:#f7f7f7;
 }
+
+/* FULL MESSAGE */
 
 .fullMessage{
 background:white;
@@ -73,15 +103,7 @@ margin-top:10px;
 cursor:pointer;
 }
 
-.replyBtn{
-background:#007bff;
-color:white;
-border:none;
-padding:10px;
-margin-top:10px;
-margin-left:10px;
-cursor:pointer;
-}
+/* SEND BUTTON */
 
 .sendBtn{
 position:fixed;
@@ -94,6 +116,8 @@ padding:16px 22px;
 border-radius:50px;
 cursor:pointer;
 }
+
+/* MODAL */
 
 .modal{
 display:none;
@@ -124,37 +148,43 @@ width:100%;
 padding:6px;
 }
 
-.replyDivider{
-border-top:1px solid #ddd;
-margin-top:8px;
-padding-top:6px;
-font-size:13px;
-}
-
-.replyPreview{
-color:blue;
-cursor:pointer;
-}
 </style>
 </head>
 
+
 <body>
+
+<!-- USER BAR -->
+
+<div class="topRight">
+User: <span id="userDisplay"></span>
+<button id="logoutBtn">Logout</button>
+</div>
+
+
+<!-- SIDEBAR -->
 
 <div class="sidebar">
 
 <button id="navInbox">Inbox</button>
 <button id="navTrash">Trash</button>
 <button onclick="openSend()">Send</button>
+<button onclick="openSettings()">Settings</button>
 
 </div>
+
+
+<!-- CONTENT -->
 
 <div class="content" id="content"></div>
 
 <button class="sendBtn" onclick="openSend()">Send</button>
 
+
 <!-- SEND MODAL -->
 
 <div class="modal" id="sendModal">
+
 <div class="modalContent">
 
 <h3>Send Message</h3>
@@ -173,7 +203,9 @@ cursor:pointer;
 <div id="sendModalStatus" style="margin-top:10px;font-size:14px;"></div>
 
 </div>
+
 </div>
+
 
 <script type="module">
 
@@ -192,6 +224,7 @@ deleteDoc,
 getDoc
 } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
+
 const firebaseConfig = {
 
 apiKey:"AIzaSyCnE-UOw56IASUOU_qwBcF5YsBOOml9BRY",
@@ -200,9 +233,12 @@ projectId:"directfeed-c3084"
 
 };
 
-const app = initializeApp(firebaseConfig);
 
+const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+
+/* LOGIN SESSION */
 
 let username = sessionStorage.getItem("loggedInUser");
 
@@ -210,10 +246,29 @@ if(!username){
 window.location.href="login.html";
 }
 
-const content = document.getElementById("content");
+document.getElementById("userDisplay").textContent = username;
 
-let replyTarget = null;
 
+/* LOGOUT */
+
+document.getElementById("logoutBtn").onclick = ()=>{
+sessionStorage.removeItem("loggedInUser");
+window.location.href="login.html";
+};
+
+
+/* SETTINGS PAGE */
+
+function openSettings(){
+window.location.href="settings.html";
+}
+
+window.openSettings = openSettings;
+
+
+/* CONTENT AREA */
+
+const content=document.getElementById("content");
 
 
 /* LOAD INBOX */
@@ -234,7 +289,7 @@ if(snap.empty){
 content.innerHTML+="<p>No messages.</p>";
 }
 
-for(const docu of snap.docs){
+snap.forEach(docu=>{
 
 const data=docu.data();
 
@@ -242,57 +297,15 @@ const row=document.createElement("div");
 
 row.className="messageRow";
 
-row.innerHTML=
-"<b>From:</b> "+data.from+
-"<br>"+data.text.substring(0,60);
+row.innerHTML="<b>From:</b> "+data.from+"<br>"+data.text.substring(0,60);
 
 row.onclick=()=>openMessage(docu.id,data);
 
-
-
-
-/* SHOW REPLY PREVIEW */
-
-if(data.replyTo){
-
-const originalSnap = await getDoc(doc(db,"messages",data.replyTo));
-
-if(originalSnap.exists()){
-
-const orig=originalSnap.data();
-
-const divider=document.createElement("div");
-
-divider.className="replyDivider";
-
-const preview=document.createElement("div");
-
-preview.className="replyPreview";
-
-preview.innerHTML="<small>Replied to:</small><br>"+orig.text.substring(0,40);
-
-preview.onclick=(e)=>{
-
-e.stopPropagation();
-
-openMessage(data.replyTo,orig);
-
-};
-
-divider.appendChild(preview);
-
-row.appendChild(divider);
-
-}
-
-}
-
 content.appendChild(row);
 
-}
+});
 
 }
-
 
 
 /* OPEN MESSAGE */
@@ -306,8 +319,6 @@ const box=document.createElement("div");
 box.className="fullMessage";
 
 box.innerHTML="<h3>From: "+data.from+"</h3><p>"+data.text+"</p>";
-
-
 
 const del=document.createElement("button");
 
@@ -323,34 +334,50 @@ loadInbox();
 
 };
 
-
-
-const reply=document.createElement("button");
-
-reply.className="replyBtn";
-
-reply.textContent="Reply";
-
-reply.onclick=()=>{
-
-replyTarget=id;
-
-openSend();
-
-document.getElementById("recipient").value=data.from;
-
-};
-
-
-
 box.appendChild(del);
-
-box.appendChild(reply);
 
 content.appendChild(box);
 
 }
 
+
+/* TRASH */
+
+async function loadTrash(){
+
+content.innerHTML="<h2>Trash</h2>";
+
+const q=query(
+collection(db,"messages"),
+where("to","==",username),
+where("deleted","==",true)
+);
+
+const snap=await getDocs(q);
+
+snap.forEach(docu=>{
+
+const data=docu.data();
+
+const row=document.createElement("div");
+
+row.className="messageRow";
+
+row.innerHTML="<b>From:</b> "+data.from+"<br>"+data.text;
+
+row.onclick=async()=>{
+
+await deleteDoc(doc(db,"messages",docu.id));
+
+loadTrash();
+
+};
+
+content.appendChild(row);
+
+});
+
+}
 
 
 /* SEND MESSAGE */
@@ -364,66 +391,42 @@ const text=document.getElementById("messageText").value.trim();
 const status=document.getElementById("sendModalStatus");
 
 if(text.length===0){
-
-status.textContent="Message empty";
-
+status.textContent="Message cannot be empty";
 status.style.color="red";
-
 return;
-
 }
 
-
+if(text.length>200){
+status.textContent="Max 200 characters";
+status.style.color="red";
+return;
+}
 
 try{
 
 const userDocSnap=await getDoc(doc(db,"users",recipient));
 
 if(!userDocSnap.exists()){
-
 status.textContent="Recipient does not exist";
-
 status.style.color="red";
-
 return;
-
 }
-
-
 
 await addDoc(collection(db,"messages"),{
 
 from:username,
-
 to:recipient,
-
 text:text,
-
-replyTo:replyTarget || null,
-
 deleted:false,
-
 timestamp:Date.now()
 
 });
 
-
-
-status.textContent="Sent!";
-
+status.textContent="Message sent!";
 status.style.color="green";
 
-
-
 document.getElementById("recipient").value="";
-
 document.getElementById("messageText").value="";
-
-
-
-replyTarget=null;
-
-
 
 closeSend();
 
@@ -435,8 +438,7 @@ catch(err){
 
 console.error(err);
 
-status.textContent="Error sending";
-
+status.textContent="Error sending message";
 status.style.color="red";
 
 }
@@ -444,26 +446,19 @@ status.style.color="red";
 }
 
 
-
 /* MODAL */
 
 function openSend(){
-
 document.getElementById("sendModal").style.display="flex";
-
 }
 
 function closeSend(){
-
 document.getElementById("sendModal").style.display="none";
-
 document.getElementById("sendModalStatus").textContent="";
-
 }
 
 
-
-/* BUTTON HOOKS */
+/* BUTTONS */
 
 document.getElementById("sendButton").addEventListener("click",sendMessage);
 
@@ -471,6 +466,7 @@ document.getElementById("cancelSendBtn").addEventListener("click",closeSend);
 
 document.getElementById("navInbox").onclick=loadInbox;
 
+document.getElementById("navTrash").onclick=loadTrash;
 
 
 /* START */

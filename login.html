@@ -10,7 +10,6 @@ form{display:flex;flex-direction:column;width:280px;padding:25px;background:whit
 input,button{margin:6px 0;padding:10px;border-radius:4px;border:1px solid #ccc;}
 button{background:#007bff;color:white;border:none;cursor:pointer;}
 #error{color:red;font-size:0.9em;}
-#securityCodeBox{background:#eee;text-align:center;padding:10px;font-weight:bold;letter-spacing:2px;margin:5px 0;font-family:monospace;}
 </style>
 </head>
 <body>
@@ -21,7 +20,6 @@ button{background:#007bff;color:white;border:none;cursor:pointer;}
 <input id="password" type="password" placeholder="Password" required>
 <button type="submit">Login</button>
 <div id="error"></div>
-<div id="securityCodeBox" style="display:none"></div>
 </form>
 
 <script type="module">
@@ -41,7 +39,6 @@ const db = getFirestore(app);
 
 const form=document.getElementById("loginForm");
 const error=document.getElementById("error");
-const securityBox=document.getElementById("securityCodeBox");
 
 async function hashPassword(password){
   const enc=new TextEncoder();
@@ -49,8 +46,6 @@ async function hashPassword(password){
   const hashBuffer=await crypto.subtle.digest("SHA-256",data);
   return Array.from(new Uint8Array(hashBuffer)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-
-let securityPassed=false;
 
 form.addEventListener("submit",async e=>{
   e.preventDefault();
@@ -65,18 +60,6 @@ form.addEventListener("submit",async e=>{
   if(!snap.exists()){ error.textContent="Invalid username or password"; return; }
   const data=snap.data();
   if(data.password!==hashed){ error.textContent="Invalid username or password"; return; }
-
-  if(data.securityCodeEnabled && !securityPassed){
-    // generate code
-    const code=Math.random().toString(36).substring(2,7).toUpperCase();
-    securityBox.textContent=code;
-    securityBox.style.display="block";
-    error.textContent=`Security Code enabled: Enter code from box`;
-    
-    const inputCode=prompt(`Hello ${usernameVal}, enter code from below box:\n${code}`);
-    if(inputCode!==code){ error.textContent="Incorrect security code"; return; }
-    securityPassed=true;
-  }
 
   sessionStorage.setItem("loggedInUser",usernameVal);
   window.location.href="dashboard.html";

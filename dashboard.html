@@ -18,6 +18,7 @@ body {margin:0;font-family:Arial;background:#f0f0f0;display:flex;}
 /* CONTENT */
 .content{margin-left:250px;padding:20px;transition:margin-left 0.3s;flex:1;}
 h2{margin-top:0;}
+#messageViewer { background:white;padding:15px;border-radius:6px;border:1px solid #ddd;margin-bottom:10px; }
 
 /* TOP RIGHT */
 .topRight{position:fixed;top:15px;right:20px;text-align:right;}
@@ -52,7 +53,10 @@ input{width:100%;padding:6px;}
 </div>
 
 <!-- CONTENT -->
-<div class="content" id="content"></div>
+<div class="content" id="content">
+  <h2>Inbox</h2>
+  <div id="messageViewer"></div>
+</div>
 
 <!-- TOP RIGHT -->
 <div class="topRight">
@@ -62,11 +66,11 @@ input{width:100%;padding:6px;}
 </div>
 
  <!-- SEND MODAL -->
-<div class="modal" id="sendModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center;">
-  <div class="modalContent" style="background:white;padding:20px;border-radius:8px;width:320px;">
+<div class="modal" id="sendModal">
+  <div class="modalContent">
     <h3>Send Message</h3>
-    <input id="recipient" placeholder="Recipient username" style="width:100%;padding:6px;"><br><br>
-    <textarea id="messageText" maxlength="200" placeholder="Message (200 max)" style="width:100%;height:80px;"></textarea><br><br>
+    <input id="recipient" placeholder="Recipient username"><br><br>
+    <textarea id="messageText" maxlength="200" placeholder="Message (200 max)"></textarea><br><br>
     <button id="sendButton">Send</button>
     <button id="cancelSendBtn">Cancel</button>
     <div id="sendModalStatus" style="margin-top:10px;font-size:14px;"></div>
@@ -119,52 +123,79 @@ function highlightNav(id){
 }
 
 const content=document.getElementById("content");
+let replyingToMessage = null;
+let replyingThread = null;
 
 /* INBOX */
 async function loadInbox(){
   highlightNav("navInbox");
-  content.innerHTML="<h2>Inbox</h2>";
+  content.innerHTML="<h2>Inbox</h2><div id='messageViewer'></div>";
   const q=query(collection(db,"messages"), where("to","==",username), where("deleted","==",false));
   const snap=await getDocs(q);
-  if(snap.empty) content.innerHTML+="<p>No messages.</p>";
+  const messages = [];
   snap.forEach(docu=>{
     const data=docu.data();
+    messages.push({id:docu.id,...data});
+  });
+  messages.sort((a,b)=>b.timestamp-a.timestamp);
+  const viewer=document.getElementById("messageViewer");
+  if(messages.length===0){ viewer.innerHTML="<p>No messages.</p>"; return; }
+  messages.forEach(m=>{
     const row=document.createElement("div");
     row.className="messageRow";
-    row.innerHTML="<b>From:</b> "+data.from+"<br>"+data.text.substring(0,60);
-    row.onclick=()=>openMessage(docu.id,data);
-    content.appendChild(row);
+    row.innerHTML="<b>From:</b> "+m.from+"<br>"+m.text.substring(0,60);
+    row.onclick=()=>openMessage(m);
+    viewer.appendChild(row);
   });
 }
 
-/* OPEN MESSAGE */
-async function openMessage(id,data){
-  content.innerHTML="";
-  const box=document.createElement("div");
-  box.className="fullMessage";
-  box.innerHTML="<h3>From: "+data.from+"</h3><p>"+data.text+"</p>";
-  const del=document.createElement("button");
-  del.className="deleteBtn";
-  del.textContent="Delete";
-  del.onclick=async()=>{ await updateDoc(doc(db,"messages",id),{deleted:true}); loadInbox(); }
-  box.appendChild(del);
-  content.appendChild(box);
+/* OPEN MESSAGE + THREAD */
+async function openMessage(message){
+  highlightNav("");
+  content.innerHTML="<h2>Conversation</h2><div id='messageViewer'></div>";
+  replyingToMessage = message.id;
+  replyingThread = message.threadId;
+
+  const viewer=document.getElementById("messageViewer");
+
+  // Load full thread
+  const q=query(collection(db,"messages"), where("threadId","==",message.threadId));
+  const snap=await getDocs(q);
+  let threadMessages=[];
+  snap.forEach(docu=>{ threadMessages.push({id:docu.id,...docu.data()}); });
+  threadMessages.sort((a,b)=>a.timestamp-a.timestamp);
+
+  threadMessages.forEach(m=>{
+    const msgDiv=document.createElement("div");
+    msgDiv.style.borderBottom="1px solid #ccc";
+    msgDiv.style.padding="10px";
+    msgDiv.innerHTML=`<b>${m.from}</b><br>${m.text}`;
+    viewer.appendChild(msgDiv);
+  });
+
+  // Reply button
+  const replyBtn=document.createElement("button");
+  replyBtn.textContent="Reply";
+  replyBtn.style.marginTop="10px";
+  replyBtn.onclick=openSend;
+  viewer.appendChild(replyBtn);
 }
 
 /* TRASH */
 async function loadTrash(){
   highlightNav("navTrash");
-  content.innerHTML="<h2>Trash</h2>";
+  content.innerHTML="<h2>Trash</h2><div id='messageViewer'></div>";
   const q=query(collection(db,"messages"), where("to","==",username), where("deleted","==",true));
   const snap=await getDocs(q);
-  if(snap.empty) content.innerHTML+="<p>No messages in Trash.</p>";
+  const viewer=document.getElementById("messageViewer");
+  if(snap.empty){ viewer.innerHTML+="<p>No messages in Trash.</p>"; return; }
   snap.forEach(docu=>{
     const data=docu.data();
     const row=document.createElement("div");
     row.className="messageRow";
     row.innerHTML="<b>From:</b> "+data.from+"<br>"+data.text.substring(0,60);
     row.onclick=()=>openTrash(docu.id,data);
-    content.appendChild(row);
+    viewer.appendChild(row);
   });
 }
 
@@ -177,12 +208,12 @@ async function openTrash(id, data){
 
   // Restore button
   const restoreBtn = document.createElement("button");
-  restoreBtn.className = "deleteBtn"; // can reuse style
+  restoreBtn.className = "deleteBtn";
   restoreBtn.style.background = "green";
   restoreBtn.textContent = "Restore to Inbox";
   restoreBtn.onclick = async () => {
       await updateDoc(doc(db,"messages",id), { deleted: false });
-      loadTrash(); // refresh trash view
+      loadTrash();
   };
 
   // Permanent delete button
@@ -202,29 +233,34 @@ async function openTrash(id, data){
 /* SEND MODAL */
 function openSend(){ 
   const modal=document.getElementById("sendModal");
-  if(modal) modal.style.display="flex"; 
-  highlightNav("navSend"); 
+  modal.style.display="flex"; 
+  if(replyingToMessage){
+    // autofill recipient
+    const threadMsg = document.getElementById("recipient");
+    threadMsg.value = ""; // default empty
+    // optional: in your app, can fetch from thread message
+  }
 }
 function closeSend(){ 
   const modal=document.getElementById("sendModal");
-  if(modal) modal.style.display="none"; 
+  modal.style.display="none"; 
   const status=document.getElementById("sendModalStatus");
-  if(status) status.textContent=""; 
+  status.textContent="";
+  replyingThread = null;
+  replyingToMessage = null;
 }
+
 document.getElementById("navInbox").onclick = loadInbox;
 document.getElementById("navTrash").onclick = loadTrash;
 document.getElementById("navSend").onclick = openSend;
 
 /* SEND MESSAGE */
 async function sendMessage(){
-  console.log("Send button clicked");
   const recipient = document.getElementById("recipient");
   const textEl = document.getElementById("messageText");
   const statusModal = document.getElementById("sendModalStatus");
-  if(!recipient || !textEl || !statusModal){
-    console.error("Send modal elements not found");
-    return;
-  }
+
+  if(!recipient || !textEl || !statusModal) return;
 
   const recipientVal = recipient.value.trim();
   const text = textEl.value.trim();
@@ -236,94 +272,36 @@ async function sendMessage(){
     const userDocSnap = await getDoc(doc(db,"users",recipientVal));
     if(!userDocSnap.exists()){ statusModal.textContent="Recipient does not exist"; statusModal.style.color="red"; return; }
 
-    await addDoc(collection(db,"messages"),{
-      from: username,
-      to: recipientVal,
-      text: text,
-      deleted: false,
-      timestamp: Date.now()
+    let thread = replyingThread;
+    let replyTo = replyingToMessage;
+
+    const newMsg = await addDoc(collection(db,"messages"),{
+        from: username,
+        to: recipientVal,
+        text: text,
+        deleted: false,
+        timestamp: Date.now(),
+        threadId: thread,
+        replyTo: replyTo
     });
+
+    if(!thread){
+        await updateDoc(doc(db,"messages",newMsg.id),{ threadId: newMsg.id });
+    }
 
     statusModal.textContent="Message sent successfully!"; statusModal.style.color="green";
     recipient.value=""; textEl.value="";
-    loadInbox();
     closeSend();
+    loadInbox();
   } catch(err){ console.error(err); statusModal.textContent="Error sending message"; statusModal.style.color="red"; }
 }
 
-// Connect Send button
-const sendBtn = document.getElementById("sendButton");
-if(sendBtn) sendBtn.addEventListener("click", sendMessage);
-else console.error("Send button not found");
+document.getElementById("sendButton").addEventListener("click", sendMessage);
+document.getElementById("cancelSendBtn").addEventListener("click", closeSend);
 
 /* INITIAL LOAD */
 loadInbox();
 
-</script>
-  <script type="module">
-import { getFirestore, collection, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
-
-// Make sure you already have Firestore initialized as `db` and logged-in username as `username`
-
-function closeSend() {
-    const modal = document.getElementById("sendModal");
-    const status = document.getElementById("sendModalStatus");
-    if(modal) modal.style.display = "none";
-    if(status) status.textContent = "";
-}
-
-async function sendMessage() {
-    const recipient = document.getElementById("recipient");
-    const textEl = document.getElementById("messageText");
-    const statusModal = document.getElementById("sendModalStatus");
-
-    if(!recipient || !textEl || !statusModal) return;
-
-    const recipientVal = recipient.value.trim();
-    const text = textEl.value.trim();
-
-    if(text.length===0){ statusModal.textContent="Message cannot be empty"; statusModal.style.color="red"; return; }
-    if(text.length>200){ statusModal.textContent="Message too long (max 200)"; statusModal.style.color="red"; return; }
-
-    try {
-        const userDocSnap = await getDoc(doc(db,"users",recipientVal));
-        if(!userDocSnap.exists()){ statusModal.textContent="Recipient does not exist"; statusModal.style.color="red"; return; }
-
-        await addDoc(collection(db,"messages"),{
-            from: username,
-            to: recipientVal,
-            text: text,
-            deleted: false,
-            timestamp: Date.now()
-        });
-
-        statusModal.textContent = "Message sent successfully!";
-        statusModal.style.color = "green";
-        recipient.value = "";
-        textEl.value = "";
-        closeSend();
-    } catch(err){
-        console.error(err);
-        statusModal.textContent = "Error sending message";
-        statusModal.style.color = "red";
-    }
-}
-
-// Hook buttons
-document.getElementById("sendButton")?.addEventListener("click", sendMessage);
-
-const cancelSendBtn = document.getElementById("cancelSendBtn");
-if(cancelSendBtn){
-    cancelSendBtn.addEventListener("click", closeSend);
-} else {
-    console.error("Cancel button not found");
-}
-
-// Function to open modal (can call this from dashboard nav)
-export function openSend() {
-    const modal = document.getElementById("sendModal");
-    if(modal) modal.style.display = "flex";
-}
 </script>
 </body>
 </html>

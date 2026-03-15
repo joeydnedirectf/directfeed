@@ -1,46 +1,47 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Dashboard</title>
+<title>Dashboard - DirectFeed</title>
 <style>
-body {margin:0;font-family:Arial;background:#f0f0f0;display:flex;}
+body {margin:0;font-family:Arial,sans-serif;background:#f5f5f5;display:flex;min-height:100vh;}
+
 /* SIDEBAR */
-.sidebar {position:fixed;left:0;top:0;height:100%;width:250px;background:#1a1a1a;color:white;transition:width 0.3s;display:flex;flex-direction:column;}
+.sidebar {position:fixed;left:0;top:0;height:100%;width:220px;background:#1b1b1b;color:white;display:flex;flex-direction:column;transition:width 0.3s;}
 .sidebar.collapsed{width:60px;}
-.sidebar .logo{font-size:22px;text-align:center;padding:15px 0;font-weight:bold;border-bottom:1px solid #333;}
-.sidebar button{display:flex;align-items:center;width:100%;padding:12px 20px;border:none;background:none;color:white;cursor:pointer;text-align:left;font-size:16px;transition:background 0.2s;}
+.sidebar .logo{font-size:22px;font-weight:bold;text-align:center;padding:15px 0;border-bottom:1px solid #333;}
+.sidebar button{display:flex;align-items:center;width:100%;padding:12px 18px;border:none;background:none;color:white;cursor:pointer;text-align:left;font-size:16px;transition:background 0.2s;}
 .sidebar button:hover{background:#333;}
-.sidebar button i{margin-right:10px;font-style:normal;width:20px;text-align:center;}
+.sidebar button i{width:25px;text-align:center;margin-right:10px;font-style:normal;}
 .sidebar button.active{background:#444;}
 .toggleBtn{background:#444;border:none;color:white;cursor:pointer;font-size:18px;padding:10px;text-align:left;}
 
 /* CONTENT */
-.content{margin-left:250px;padding:20px;transition:margin-left 0.3s;flex:1;}
-h2{margin-top:0;}
+.content{margin-left:220px;padding:20px;transition:margin-left 0.3s;flex:1;}
+h2{margin-top:0;color:#333;}
 
 /* TOP RIGHT */
 .topRight{position:fixed;top:15px;right:20px;text-align:right;}
+.topRight span{font-weight:bold;margin-right:10px;}
 .topRight button{margin-left:5px;padding:6px 10px;border:none;cursor:pointer;border-radius:4px;}
 #logoutBtn{background:#007bff;color:white;}
 #settingsBtn{background:#888;color:white;}
 
 /* MESSAGE ROWS */
-.messageRow{background:white;padding:15px;margin-bottom:10px;border-radius:6px;cursor:pointer;border:1px solid #ddd;}
+.messageRow{background:white;padding:15px;margin-bottom:10px;border-radius:6px;cursor:pointer;border:1px solid #ddd;transition:background 0.2s;}
 .messageRow:hover{background:#f7f7f7;}
-.fullMessage{background:white;padding:20px;border-radius:6px;border:1px solid #ddd;}
-.deleteBtn{background:red;color:white;border:none;padding:10px;margin-top:10px;cursor:pointer;}
-.permDelete{background:black;color:white;border:none;padding:10px;margin-top:10px;cursor:pointer;}
-.replyBtn{background:green;color:white;border:none;padding:10px;margin-top:10px;cursor:pointer;}
-.favoriteBtn{background:gold;color:black;border:none;padding:10px;margin-top:10px;cursor:pointer;}
-.sendBtn{position:fixed;bottom:60px;right:20px;background:#007bff;color:white;border:none;padding:16px 22px;border-radius:50px;cursor:pointer;}
-#sendStatus{position:fixed;bottom:20px;right:20px;font-size:14px;}
-.divider{font-size:12px;color:#555;margin:10px 0;border-bottom:1px solid #ccc;padding-bottom:4px;}
-.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);justify-content:center;align-items:center;}
-.modalContent{background:white;padding:20px;border-radius:8px;width:320px;}
-textarea{width:100%;height:80px;}
-input{width:100%;padding:6px;}
-.timestamp{font-size:11px;color:#555;margin-top:5px;}
+.fullMessage{background:white;padding:20px;border-radius:6px;border:1px solid #ddd;margin-bottom:10px;}
+.deleteBtn{background:red;color:white;border:none;padding:10px;margin-top:10px;cursor:pointer;border-radius:4px;}
+.permDelete{background:black;color:white;border:none;padding:10px;margin-top:10px;cursor:pointer;border-radius:4px;}
+.replyBtn{background:#28a745;color:white;border:none;padding:8px;margin-left:10px;border-radius:4px;cursor:pointer;}
+.favoriteBtn{background:#ffc107;color:white;border:none;padding:8px;margin-left:10px;border-radius:4px;cursor:pointer;}
+.timestamp{color:#666;font-size:12px;margin-top:8px;}
+
+/* SEND MODAL */
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);justify-content:center;align-items:center;z-index:10;}
+.modalContent{background:white;padding:20px;border-radius:8px;width:350px;max-width:90%;}
+textarea{width:100%;height:80px;margin-bottom:10px;}
+input{width:100%;padding:6px;margin-bottom:10px;}
 </style>
 </head>
 <body>
@@ -69,8 +70,8 @@ input{width:100%;padding:6px;}
 <div class="modal" id="sendModal">
   <div class="modalContent">
     <h3>Send Message</h3>
-    <input id="recipient" placeholder="Recipient username"><br><br>
-    <textarea id="messageText" maxlength="200" placeholder="Message (200 max)"></textarea><br><br>
+    <input id="recipient" placeholder="Recipient username">
+    <textarea id="messageText" maxlength="200" placeholder="Message (200 max)"></textarea>
     <button id="sendButton">Send</button>
     <button id="cancelSendBtn">Cancel</button>
     <div id="sendModalStatus" style="margin-top:10px;font-size:14px;"></div>
@@ -79,7 +80,7 @@ input{width:100%;padding:6px;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, getDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
 // Firebase config
 const firebaseConfig = {
@@ -113,19 +114,17 @@ document.getElementById("navSettings").onclick = openSettings;
 function toggleSidebar(){
   const sb=document.getElementById("sidebar");
   sb.classList.toggle("collapsed");
-  document.querySelector(".content").style.marginLeft=sb.classList.contains("collapsed")?"60px":"250px";
+  document.querySelector(".content").style.marginLeft=sb.classList.contains("collapsed")?"60px":"220px";
 }
 
 /* HIGHLIGHT NAV */
 function highlightNav(id){
-  const el = document.getElementById(id);
-  if(el) el.classList.add("active");
-  ["navInbox","navTrash","navSend","navSettings"].forEach(b=>{
-    if(b!==id && document.getElementById(b)) document.getElementById(b).classList.remove("active");
-  });
+  ["navInbox","navTrash","navSend","navSettings"].forEach(b=>document.getElementById(b).classList.remove("active"));
+  const btn=document.getElementById(id);
+  if(btn) btn.classList.add("active");
 }
 
-/* GLOBAL REPLY TARGET */
+/* CURRENT REPLY TARGET */
 window.replyTarget = null;
 
 /* INBOX */
@@ -133,16 +132,29 @@ async function loadInbox(){
   highlightNav("navInbox");
   const content=document.getElementById("content");
   content.innerHTML="<h2>Inbox</h2>";
-  const q=query(collection(db,"messages"), where("to","==",username), orderBy("timestamp","desc"));
+  
+  const q=query(collection(db,"messages"), where("to","==",username));
   const snap=await getDocs(q);
-  if(snap.empty){ content.innerHTML+="<p>No messages.</p>"; return; }
+
+  if(snap.empty) content.innerHTML+="<p>No messages.</p>";
+
   snap.forEach(docu=>{
     const data=docu.data();
     const row=document.createElement("div");
     row.className="messageRow";
-    let replyInfo="";
-    if(data.replyTo) replyInfo=`<div class="divider">Replied to: ${data.replyTo}</div>`;
-    row.innerHTML=`<b>From:</b> ${data.from}<br>${data.text.substring(0,60)}<br><span class="timestamp">${new Date(data.timestamp).toLocaleString()}</span>${replyInfo}`;
+
+    let replyInfo = "";
+    if(data.replyTo){
+      replyInfo = `<div style="font-size:12px;color:#666;margin-bottom:5px;">Replied to: ${data.replyTo}</div>`;
+    }
+
+    row.innerHTML = `
+      <b>From:</b> ${data.from}<br>
+      ${replyInfo}
+      ${data.text.substring(0,60)}
+      <div class="timestamp">${new Date(data.timestamp).toLocaleString()}</div>
+    `;
+
     row.onclick=()=>openMessage(docu.id,data);
     content.appendChild(row);
   });
@@ -152,30 +164,47 @@ async function loadInbox(){
 async function openMessage(id,data){
   const content=document.getElementById("content");
   content.innerHTML="";
+
   const box=document.createElement("div");
   box.className="fullMessage";
-  let replyInfo="";
+
+  let replyInfo = "";
   if(data.replyTo){
-    const repDoc = await getDoc(doc(db,"messages",data.replyTo));
-    if(repDoc.exists()){ replyInfo=`<div class="divider">Replied to: ${repDoc.data().text.substring(0,60)}</div>`; }
+    replyInfo = `<div style="font-size:12px;color:#666;margin-bottom:5px;">Replied to: ${data.replyTo}</div>`;
   }
-  box.innerHTML=`<h3>From: ${data.from}</h3>${replyInfo}<p>${data.text}</p><span class="timestamp">${new Date(data.timestamp).toLocaleString()}</span>`;
+
+  box.innerHTML = `
+    <h3>From: ${data.from}</h3>
+    ${replyInfo}
+    <p>${data.text}</p>
+    <div class="timestamp">${new Date(data.timestamp).toLocaleString()}</div>
+  `;
+
   const del=document.createElement("button");
   del.className="deleteBtn";
   del.textContent="Delete";
   del.onclick=async()=>{ await updateDoc(doc(db,"messages",id),{deleted:true}); loadInbox(); }
-  const replyBtn = document.createElement("button");
-  replyBtn.className="replyBtn";
-  replyBtn.textContent="Reply";
-  replyBtn.onclick=()=>{ window.replyTarget = id; openSend(); };
-  const favBtn = document.createElement("button");
-  favBtn.className="favoriteBtn";
-  favBtn.textContent="Favorite";
-  favBtn.onclick=async()=>{ await updateDoc(doc(db,"messages",id),{favorite:true}); alert("Message favorited!"); };
+
+  const reply=document.createElement("button");
+  reply.className="replyBtn";
+  reply.textContent="Reply";
+  reply.onclick=()=>{
+    window.replyTarget = {id,data};
+    openSend();
+  }
+
+  const fav=document.createElement("button");
+  fav.className="favoriteBtn";
+  fav.textContent="Favorite";
+  fav.onclick=async()=>{
+    await updateDoc(doc(db,"messages",id), {favorite: !data.favorite});
+    openMessage(id,data);
+  }
 
   box.appendChild(del);
-  box.appendChild(replyBtn);
-  box.appendChild(favBtn);
+  box.appendChild(reply);
+  box.appendChild(fav);
+
   content.appendChild(box);
 }
 
@@ -184,37 +213,52 @@ async function loadTrash(){
   highlightNav("navTrash");
   const content=document.getElementById("content");
   content.innerHTML="<h2>Trash</h2>";
-  const q=query(collection(db,"messages"), where("to","==",username), where("deleted","==",true), orderBy("timestamp","desc"));
+
+  const q=query(collection(db,"messages"), where("to","==",username), where("deleted","==",true));
   const snap=await getDocs(q);
-  if(snap.empty){ content.innerHTML+="<p>No messages in Trash.</p>"; return; }
+
+  if(snap.empty) content.innerHTML+="<p>No messages in Trash.</p>";
+
   snap.forEach(docu=>{
     const data=docu.data();
     const row=document.createElement("div");
     row.className="messageRow";
-    row.innerHTML=`<b>From:</b> ${data.from}<br>${data.text.substring(0,60)}<br><span class="timestamp">${new Date(data.timestamp).toLocaleString()}</span>`;
-    row.onclick=()=>openTrash(docu.id,data);
+
+    let replyInfo = "";
+    if(data.replyTo){
+      replyInfo = `<div style="font-size:12px;color:#666;margin-bottom:5px;">Replied to: ${data.replyTo}</div>`;
+    }
+
+    row.innerHTML = `<b>From:</b> ${data.from}<br>${replyInfo}${data.text.substring(0,60)}<div class="timestamp">${new Date(data.timestamp).toLocaleString()}</div>`;
+    row.onclick=()=>openTrashMessage(docu.id,data);
     content.appendChild(row);
   });
 }
 
-/* OPEN TRASH */
-async function openTrash(id,data){
+async function openTrashMessage(id,data){
   const content=document.getElementById("content");
   content.innerHTML="";
+
   const box=document.createElement("div");
   box.className="fullMessage";
-  box.innerHTML=`<h3>From: ${data.from}</h3><p>${data.text}</p><span class="timestamp">${new Date(data.timestamp).toLocaleString()}</span>`;
 
-  const restoreBtn = document.createElement("button");
+  let replyInfo = "";
+  if(data.replyTo){
+    replyInfo = `<div style="font-size:12px;color:#666;margin-bottom:5px;">Replied to: ${data.replyTo}</div>`;
+  }
+
+  box.innerHTML = `<h3>From: ${data.from}</h3>${replyInfo}<p>${data.text}</p><div class="timestamp">${new Date(data.timestamp).toLocaleString()}</div>`;
+
+  const restoreBtn=document.createElement("button");
   restoreBtn.className="replyBtn";
   restoreBtn.style.background="green";
   restoreBtn.textContent="Restore to Inbox";
-  restoreBtn.onclick=async()=>{ await updateDoc(doc(db,"messages",id),{deleted:false}); loadTrash(); };
+  restoreBtn.onclick=async()=>{ await updateDoc(doc(db,"messages",id),{deleted:false}); loadTrash(); }
 
   const del=document.createElement("button");
   del.className="permDelete";
   del.textContent="Delete Permanently";
-  del.onclick=async()=>{ await deleteDoc(doc(db,"messages",id)); loadTrash(); };
+  del.onclick=async()=>{ await deleteDoc(doc(db,"messages",id)); loadTrash(); }
 
   box.appendChild(restoreBtn);
   box.appendChild(del);
@@ -222,58 +266,55 @@ async function openTrash(id,data){
 }
 
 /* SEND MODAL */
-function openSend(){ 
+function openSend(){
   const modal=document.getElementById("sendModal");
-  if(modal) modal.style.display="flex"; 
-  highlightNav("navSend"); 
-}
-function closeSend(){ 
-  const modal=document.getElementById("sendModal");
-  if(modal) modal.style.display="none"; 
-  const status=document.getElementById("sendModalStatus");
-  if(status) status.textContent=""; 
+  modal.style.display="flex";
+  if(window.replyTarget){
+    const recipient=document.getElementById("recipient");
+    recipient.value=window.replyTarget.data.from;
+  }
 }
 
-document.getElementById("navInbox").onclick = loadInbox;
-document.getElementById("navTrash").onclick = loadTrash;
-document.getElementById("navSend").onclick = openSend;
+function closeSend(){
+  const modal=document.getElementById("sendModal");
+  modal.style.display="none";
+  const status=document.getElementById("sendModalStatus");
+  if(status) status.textContent="";
+}
+
+document.getElementById("navInbox").onclick=loadInbox;
+document.getElementById("navTrash").onclick=loadTrash;
+document.getElementById("navSend").onclick=openSend;
 
 /* SEND MESSAGE */
 async function sendMessage(){
-  const recipient = document.getElementById("recipient").value.trim();
-  const text = document.getElementById("messageText").value.trim();
-  const status = document.getElementById("sendModalStatus");
+  const recipient=document.getElementById("recipient").value.trim();
+  const text=document.getElementById("messageText").value.trim();
+  const status=document.getElementById("sendModalStatus");
 
-  if(!recipient || !text){ status.textContent="Please fill all fields"; status.style.color="red"; return; }
+  if(!recipient || !text){
+    status.textContent="Recipient and message required"; status.style.color="red"; return;
+  }
 
   try{
-    const userSnap = await getDoc(doc(db,"users",recipient));
+    const userSnap=await getDoc(doc(db,"users",recipient));
     if(!userSnap.exists()){ status.textContent="Recipient does not exist"; status.style.color="red"; return; }
 
-    const messageData={
-      from: username,
-      to: recipient,
-      text,
-      deleted:false,
-      timestamp:Date.now()
-    };
+    const msgObj={from:username,to:recipient,text:text,deleted:false,timestamp:Date.now()};
+    if(window.replyTarget) msgObj.replyTo = window.replyTarget.id;
 
-    if(window.replyTarget) messageData.replyTo = window.replyTarget;
-
-    await addDoc(collection(db,"messages"), messageData);
-
-    status.textContent="Message sent!";
-    status.style.color="green";
+    await addDoc(collection(db,"messages"),msgObj);
+    status.textContent="Message sent!"; status.style.color="green";
     document.getElementById("recipient").value="";
     document.getElementById("messageText").value="";
     window.replyTarget=null;
     closeSend();
     loadInbox();
-  } catch(err){ console.error(err); status.textContent="Error sending"; status.style.color="red"; }
+  } catch(e){ console.error(e); status.textContent="Error sending message"; status.style.color="red"; }
 }
 
-document.getElementById("sendButton").onclick = sendMessage;
-document.getElementById("cancelSendBtn").onclick = closeSend;
+document.getElementById("sendButton").onclick=sendMessage;
+document.getElementById("cancelSendBtn").onclick=closeSend;
 
 /* INITIAL LOAD */
 loadInbox();

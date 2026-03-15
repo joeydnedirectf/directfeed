@@ -2,127 +2,149 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Settings - DirectFeed</title>
 <style>
-  body {margin:0;font-family:Arial,sans-serif;background:#f0f0f0;}
-  /* TOP BAR */
-  .topBar {
-    width:100%;
-    background:#1a1a1a;
-    color:white;
-    padding:15px 0;
-    text-align:center;
-    font-size:24px;
-    font-weight:bold;
-    position:fixed;
-    top:0;
-    left:0;
-    z-index:1000;
-  }
-  .backBtn {
-    position:absolute;
-    left:15px;
-    top:15px;
-    background:#444;
-    color:white;
-    border:none;
-    padding:8px 12px;
-    cursor:pointer;
-    border-radius:4px;
-  }
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
 
-  .content {
-    margin-top:70px;
-    max-width:480px;
-    margin-left:auto;
-    margin-right:auto;
-    background:white;
-    padding:20px;
-    border-radius:8px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.1);
-  }
+/* TOP BAR */
+.topBar {
+    background: #1a1a1a;
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    position: relative;
+}
 
-  .usernameBox {
-    background:#eee;
-    padding:15px;
-    font-size:18px;
-    font-weight:bold;
-    border-radius:6px;
-    text-align:center;
-    margin-bottom:20px;
-  }
+.backBtn {
+    background: #444;
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-right: 20px;
+}
 
-  .formGroup {
-    margin-bottom:20px;
-  }
+.topBar h1 {
+    flex: 1;
+    text-align: center;
+    font-size: 22px;
+    margin: 0;
+    font-weight: bold;
+}
 
-  label {
-    display:block;
-    margin-bottom:5px;
-    font-weight:bold;
-  }
+/* CONTENT */
+.content {
+    flex: 1;
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 
-  input {
-    width:100%;
-    padding:10px;
-    border-radius:4px;
-    border:1px solid #ccc;
-    font-size:16px;
-  }
+.userBox {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    width: 300px;
+    text-align: center;
+    margin-bottom: 30px;
+    font-weight: bold;
+    font-size: 18px;
+}
 
-  button {
-    width:100%;
-    padding:12px;
-    margin-top:10px;
-    border:none;
-    border-radius:6px;
-    font-size:16px;
-    cursor:pointer;
-    font-weight:bold;
-  }
+/* BUTTONS */
+button {
+    width: 300px;
+    padding: 12px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+}
 
-  .resetBtn { background:#007bff; color:white; }
-  .deleteBtn { background:red; color:white; }
+.resetBtn { background: #007bff; color: white; }
+.deleteBtn { background: red; color: white; }
 
-  #statusMsg { margin-top:10px; font-size:14px; text-align:center; }
+/* RESET PASSWORD FORM */
+.resetForm {
+    display: none;
+    flex-direction: column;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 300px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+}
+
+.resetForm input {
+    margin: 8px 0;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.resetForm button {
+    margin-top: 10px;
+}
+
+#statusMsg {
+    margin-top: 10px;
+    font-size: 14px;
+    font-weight: bold;
+}
 
 </style>
 </head>
 <body>
 
 <div class="topBar">
-  Settings
-  <button class="backBtn" id="backBtn">← Back</button>
+    <button class="backBtn" id="backBtn">← Back</button>
+    <h1>Settings</h1>
 </div>
 
 <div class="content">
-  <div class="usernameBox" id="settingsUser">Username</div>
+    <div class="userBox">
+        Username: <span id="settingsUser"></span>
+    </div>
 
-  <div class="formGroup">
-    <label for="newPassword">New Password</label>
-    <input type="password" id="newPassword" placeholder="Enter new password">
-    <label for="confirmPassword">Confirm Password</label>
-    <input type="password" id="confirmPassword" placeholder="Retype password">
-    <button class="resetBtn" id="changePassBtn">Reset Password</button>
-    <div id="statusMsg"></div>
-  </div>
+    <!-- Reset Password -->
+    <button class="resetBtn" id="showResetBtn">Reset Password</button>
+    <div class="resetForm" id="resetForm">
+        <input type="password" id="newPass" placeholder="New password" required>
+        <input type="password" id="confirmPass" placeholder="Retype new password" required>
+        <button id="submitReset">Update Password</button>
+        <div id="statusMsg"></div>
+    </div>
 
-  <div class="formGroup">
-    <button class="deleteBtn" id="deleteAccBtn">Delete Account</button>
-  </div>
+    <!-- Delete Account -->
+    <button class="deleteBtn" id="deleteAccountBtn">Delete Account</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
 import { getFirestore, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
+// Firebase config
 const firebaseConfig = {
-  apiKey:"AIzaSyCnE-UOw56IASUOU_qwBcF5YsBOOml9BRY",
-  authDomain:"directfeed-c3084.firebaseapp.com",
-  projectId:"directfeed-c3084",
-  storageBucket:"directfeed-c3084.firebasestorage.app",
-  messagingSenderId:"780676224282",
-  appId:"1:780676224282:web:8580ee6c3aa1738394c8a3"
+    apiKey:"AIzaSyCnE-UOw56IASUOU_qwBcF5YsBOOml9BRY",
+    authDomain:"directfeed-c3084.firebaseapp.com",
+    projectId:"directfeed-c3084",
+    storageBucket:"directfeed-c3084.firebasestorage.app",
+    messagingSenderId:"780676224282",
+    appId:"1:780676224282:web:8580ee6c3aa1738394c8a3"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -133,50 +155,70 @@ let username = sessionStorage.getItem("loggedInUser");
 if(!username) window.location.href="login.html";
 document.getElementById("settingsUser").textContent = username;
 
-/* NAVIGATION */
-document.getElementById("backBtn").addEventListener("click", ()=>{ window.location.href="dashboard.html"; });
+/* BACK BUTTON */
+document.getElementById("backBtn").onclick = () => {
+    window.location.href="dashboard.html";
+}
+
+/* SHOW/HIDE RESET FORM */
+const showResetBtn = document.getElementById("showResetBtn");
+const resetForm = document.getElementById("resetForm");
+showResetBtn.onclick = () => {
+    resetForm.style.display = resetForm.style.display === "flex" ? "none" : "flex";
+}
 
 /* RESET PASSWORD */
-async function changePassword(){
-  const newPass = document.getElementById("newPassword").value.trim();
-  const confirmPass = document.getElementById("confirmPassword").value.trim();
-  const status = document.getElementById("statusMsg");
-
-  status.textContent = "";
-  if(newPass.length<6){ status.textContent="Password too short"; status.style.color="red"; return; }
-  if(newPass !== confirmPass){ status.textContent="Passwords do not match"; status.style.color="red"; return; }
-
-  try{
-    const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(newPass));
-    const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b=>b.toString(16).padStart(2,'0')).join('');
-    await updateDoc(doc(db,"users",username),{ password: hashHex });
-    status.textContent="Password updated successfully!";
-    status.style.color="green";
-    document.getElementById("newPassword").value="";
-    document.getElementById("confirmPassword").value="";
-  } catch(e){
-    console.error(e);
-    status.textContent="Error updating password.";
-    status.style.color="red";
-  }
+async function sha256(message){
+    const msgUint8 = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    return Array.from(new Uint8Array(hashBuffer)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-document.getElementById("changePassBtn").addEventListener("click", changePassword);
+
+document.getElementById("submitReset").onclick = async () => {
+    const newPass = document.getElementById("newPass").value.trim();
+    const confirmPass = document.getElementById("confirmPass").value.trim();
+    const status = document.getElementById("statusMsg");
+
+    if(!newPass || !confirmPass){
+        status.textContent = "Please fill both fields.";
+        status.style.color = "red";
+        return;
+    }
+    if(newPass !== confirmPass){
+        status.textContent = "Passwords do not match.";
+        status.style.color = "red";
+        return;
+    }
+
+    try{
+        const hash = await sha256(newPass);
+        await updateDoc(doc(db,"users",username),{password: hash});
+        status.textContent = "Password updated successfully!";
+        status.style.color = "green";
+        document.getElementById("newPass").value="";
+        document.getElementById("confirmPass").value="";
+        resetForm.style.display="none";
+    } catch(err){
+        console.error(err);
+        status.textContent = "Error updating password.";
+        status.style.color = "red";
+    }
+}
 
 /* DELETE ACCOUNT */
-async function deleteAccount(){
-  if(!confirm("Are you sure you want to delete your DirectFeed account?")) return;
-  try{
-    await deleteDoc(doc(db,"users",username));
-    sessionStorage.removeItem("loggedInUser");
-    alert("Account deleted. Returning to login.");
-    window.location.href="login.html";
-  } catch(e){
-    console.error(e);
-    alert("Error deleting account.");
-  }
+document.getElementById("deleteAccountBtn").onclick = async () => {
+    if(!confirm("Are you sure you want to delete your DirectFeed account?")) return;
+    try{
+        await deleteDoc(doc(db,"users",username));
+        sessionStorage.removeItem("loggedInUser");
+        alert("Account deleted.");
+        window.location.href="login.html";
+    } catch(err){
+        console.error(err);
+        alert("Error deleting account.");
+    }
 }
-document.getElementById("deleteAccBtn").addEventListener("click", deleteAccount);
-</script>
 
+</script>
 </body>
 </html>

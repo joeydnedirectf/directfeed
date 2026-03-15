@@ -5,36 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Login - DirectFeed</title>
 <style>
-body{font-family:Arial;display:flex;justify-content:center;align-items:center;height:100vh;background:#f5f5f5;}
+body{font-family:Arial;display:flex;justify-content:center;align-items:center;height:100vh;background:#f0f0f0;}
 form{display:flex;flex-direction:column;width:280px;padding:25px;background:white;border-radius:8px;box-shadow:0 0 10px rgba(0,0,0,0.1);}
 input,button{margin:6px 0;padding:10px;border-radius:4px;border:1px solid #ccc;}
-button{background:#007bff;color:white;border:none;cursor:pointer;font-weight:bold;}
-button:hover{background:#0051a3;}
+button{background:#007bff;color:white;border:none;cursor:pointer;}
 #error{color:red;font-size:0.9em;}
-#loading{display:none;text-align:center;margin-top:10px;}
-.spinner{border:4px solid #eee;border-top:4px solid #007bff;border-radius:50%;width:24px;height:24px;animation:spin 1s linear infinite;margin:auto;}
-@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-.codeBox{background:#eee;padding:8px;text-align:center;font-weight:bold;letter-spacing:2px;margin:5px 0;border-radius:4px;}
+#securityCodeBox{background:#eee;text-align:center;padding:10px;font-weight:bold;letter-spacing:2px;margin:5px 0;font-family:monospace;}
 </style>
 </head>
 <body>
+
 <form id="loginForm">
 <h2>Login</h2>
 <input id="username" placeholder="Username" required>
 <input id="password" type="password" placeholder="Password" required>
-<div id="securityDiv" style="display:none;">
-  <div>Security code sent to your account:</div>
-  <div class="codeBox" id="securityCodeBox"></div>
-  <input id="securityInput" placeholder="Enter security code">
-</div>
 <button type="submit">Login</button>
 <div id="error"></div>
-<div id="loading"><div class="spinner"></div><div>Checking login...</div></div>
+<div id="securityCodeBox" style="display:none"></div>
 </form>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getFirestore, doc, getDoc, addDoc, collection } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey:"AIzaSyCnE-UOw56IASUOU_qwBcF5YsBOOml9BRY",
@@ -44,53 +36,46 @@ const firebaseConfig = {
   messagingSenderId:"780676224282",
   appId:"1:780676224282:web:8580ee6c3aa1738394c8a3"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const form=document.getElementById("loginForm");
 const error=document.getElementById("error");
-const loading=document.getElementById("loading");
-const securityDiv=document.getElementById("securityDiv");
-const securityCodeBox=document.getElementById("securityCodeBox");
-const securityInput=document.getElementById("securityInput");
+const securityBox=document.getElementById("securityCodeBox");
 
 async function hashPassword(password){
-  const data=new TextEncoder().encode(password);
+  const enc=new TextEncoder();
+  const data=enc.encode(password);
   const hashBuffer=await crypto.subtle.digest("SHA-256",data);
-  return Array.from(new Uint8Array(hashBuffer)).map(b=>b.toString(16).padStart(2,"0")).join("");
+  return Array.from(new Uint8Array(hashBuffer)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-let tempSecurityCode=null;
+let securityPassed=false;
 
-form.addEventListener("submit", async e=>{
+form.addEventListener("submit",async e=>{
   e.preventDefault();
   error.textContent="";
-  loading.style.display="block";
 
   const usernameVal=document.getElementById("username").value.trim();
   const passwordVal=document.getElementById("password").value;
-
   const hashed=await hashPassword(passwordVal);
-  const ref=doc(db,"users",usernameVal);
-  const snap=await getDoc(ref);
-  loading.style.display="none";
 
-  if(!snap.exists() || snap.data().password!==hashed){
-    error.textContent="Invalid username or password"; return;
-  }
+  const userRef=doc(db,"users",usernameVal);
+  const snap=await getDoc(userRef);
+  if(!snap.exists()){ error.textContent="Invalid username or password"; return; }
+  const data=snap.data();
+  if(data.password!==hashed){ error.textContent="Invalid username or password"; return; }
 
-  const userData=snap.data();
-  if(userData.securityEnabled){
-    // Generate 5-digit code
-    tempSecurityCode=Math.random().toString(36).substring(2,7).toUpperCase();
-    securityCodeBox.textContent=tempSecurityCode;
-    securityDiv.style.display="block";
-
-    if(!securityInput.value || securityInput.value.toUpperCase()!==tempSecurityCode){
-      alert(`Hello ${usernameVal}, you tried to login. Please enter the code from below.`);
-      return;
-    }
+  if(data.securityCodeEnabled && !securityPassed){
+    // generate code
+    const code=Math.random().toString(36).substring(2,7).toUpperCase();
+    securityBox.textContent=code;
+    securityBox.style.display="block";
+    error.textContent=`Security Code enabled: Enter code from box`;
+    
+    const inputCode=prompt(`Hello ${usernameVal}, enter code from below box:\n${code}`);
+    if(inputCode!==code){ error.textContent="Incorrect security code"; return; }
+    securityPassed=true;
   }
 
   sessionStorage.setItem("loggedInUser",usernameVal);

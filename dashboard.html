@@ -135,35 +135,38 @@ async function loadInbox(){
   const messages = [];
   snap.forEach(docu=>{
     const data=docu.data();
-    messages.push({id:docu.id,...data});
+    // ensure each message has threadId
+    messages.push({id:docu.id, threadId: data.threadId || docu.id, ...data});
   });
   messages.sort((a,b)=>b.timestamp-a.timestamp);
   const viewer=document.getElementById("messageViewer");
   if(messages.length===0){ viewer.innerHTML="<p>No messages.</p>"; return; }
+
   messages.forEach(m=>{
     const row=document.createElement("div");
     row.className="messageRow";
     row.innerHTML="<b>From:</b> "+m.from+"<br>"+m.text.substring(0,60);
-    row.onclick=()=>openMessage(m);
+    row.onclick=()=>openMessage(m.threadId); // pass threadId, not full message
     viewer.appendChild(row);
   });
 }
 
 /* OPEN MESSAGE + THREAD */
-async function openMessage(message){
+async function openMessage(threadId){
   highlightNav("");
   content.innerHTML="<h2>Conversation</h2><div id='messageViewer'></div>";
-  replyingToMessage = message.id;
-  replyingThread = message.threadId;
-
   const viewer=document.getElementById("messageViewer");
 
   // Load full thread
-  const q=query(collection(db,"messages"), where("threadId","==",message.threadId));
+  const q=query(collection(db,"messages"), where("threadId","==",threadId));
   const snap=await getDocs(q);
   let threadMessages=[];
   snap.forEach(docu=>{ threadMessages.push({id:docu.id,...docu.data()}); });
   threadMessages.sort((a,b)=>a.timestamp-a.timestamp);
+
+  // Set replying to the latest message in thread
+  replyingThread = threadId;
+  replyingToMessage = threadMessages[threadMessages.length-1].id;
 
   threadMessages.forEach(m=>{
     const msgDiv=document.createElement("div");

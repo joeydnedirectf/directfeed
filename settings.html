@@ -1,40 +1,66 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Settings - DirectFeed</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DirectFeed Settings</title>
 <style>
-body {margin:0;font-family:Arial;background:#f0f0f0;display:flex;}
-.sidebar {position:fixed;left:0;top:0;height:100%;width:250px;background:#1a1a1a;color:white;display:flex;flex-direction:column;}
-.sidebar.collapsed{width:60px;}
-.sidebar .logo{font-size:22px;text-align:center;padding:15px 0;font-weight:bold;border-bottom:1px solid #333;}
-.sidebar button{display:flex;align-items:center;width:100%;padding:12px 20px;border:none;background:none;color:white;cursor:pointer;text-align:left;font-size:16px;transition:background 0.2s;}
-.sidebar button:hover{background:#333;}
-.sidebar button.active{background:#444;}
-.toggleBtn{background:#444;border:none;color:white;cursor:pointer;font-size:18px;padding:10px;text-align:left;}
-.content{margin-left:250px;padding:20px;transition:margin-left 0.3s;flex:1;}
-h2{margin-top:0;}
-button{padding:10px 15px;margin:5px 0;border:none;border-radius:4px;cursor:pointer;}
-.changePass{background:#007bff;color:white;}
-.deleteAcc{background:red;color:white;}
+/* RESET & BODY */
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+body { background:#f5f6fa; color:#333; display:flex; flex-direction:column; min-height:100vh; }
+
+/* TOPBAR */
+.topbar {
+  width:100%; padding:15px 20px; background:#2f3640; color:white; display:flex; align-items:center; justify-content:center;
+  position:fixed; top:0; left:0; z-index:1000;
+}
+.topbar .backBtn {
+  position:absolute; left:15px; background:#00a8ff; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; color:white;
+}
+.topbar h1 { font-size:22px; font-weight:bold; color:white; }
+
+/* CONTENT */
+.content { flex:1; margin-top:70px; padding:25px; max-width:480px; margin-left:auto; margin-right:auto; }
+
+/* USER BOX */
+.userBox { background:white; padding:15px 20px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); text-align:center; margin-bottom:25px; }
+.userBox span { font-weight:bold; font-size:18px; color:#2f3640; }
+
+/* BUTTONS & FORMS */
+.formGroup { margin-bottom:20px; display:flex; flex-direction:column; gap:10px; }
+.formGroup input { padding:10px; border:1px solid #ccc; border-radius:6px; }
+button { padding:10px 16px; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-size:14px; }
+.resetPassBtn { background:#00a8ff; color:white; }
+.deleteAccBtn { background:#e84118; color:white; }
+
+/* SMALL TEXT / STATUS */
+#statusMsg { font-size:14px; margin-top:10px; color:#e84118; }
 </style>
 </head>
 <body>
 
-<div class="sidebar" id="sidebar">
-  <div class="logo">DirectFeed</div>
-  <button class="toggleBtn" onclick="toggleSidebar()">☰</button>
-  <button id="navInbox" onclick="goDashboard()">📥 Inbox</button>
-  <button id="navTrash" onclick="goDashboard()">🗑️ Trash</button>
-  <button id="navSend" onclick="goDashboard()">✉️ Send</button>
-  <button id="navSettings" class="active">⚙️ Settings</button>
+<div class="topbar">
+  <button class="backBtn" id="backBtn">← Back</button>
+  <h1>Settings</h1>
 </div>
 
-<div class="content" id="content">
-<h2>Settings</h2>
-<div>User: <span id="settingsUser"></span></div>
-<button class="changePass" onclick="changePassword()">Change Password</button><br>
-<button class="deleteAcc" onclick="deleteAccount()">Delete Account</button>
+<div class="content">
+  <div class="userBox">
+    Username: <span id="settingsUser"></span>
+  </div>
+
+  <div class="formGroup">
+    <label>New Password:</label>
+    <input type="password" id="newPass" placeholder="Enter new password">
+    <label>Confirm Password:</label>
+    <input type="password" id="confirmPass" placeholder="Retype password">
+    <button class="resetPassBtn" id="resetPassBtn">Reset Password</button>
+    <div id="statusMsg"></div>
+  </div>
+
+  <div class="formGroup">
+    <button class="deleteAccBtn" id="deleteAccBtn">Delete Account</button>
+  </div>
 </div>
 
 <script type="module">
@@ -49,37 +75,59 @@ const firebaseConfig = {
   messagingSenderId:"780676224282",
   appId:"1:780676224282:web:8580ee6c3aa1738394c8a3"
 };
-const app=initializeApp(firebaseConfig);
-const db=getFirestore(app);
 
-let username=sessionStorage.getItem("loggedInUser");
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let username = sessionStorage.getItem("loggedInUser");
 if(!username) window.location.href="login.html";
-document.getElementById("settingsUser").textContent=username;
+document.getElementById("settingsUser").textContent = username;
 
-window.changePassword=async()=>{
-  let newPass=prompt("Enter new password (hashed SHA256):");
-  if(!newPass) return;
-  const hashBuffer=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(newPass));
-  const hashHex=Array.from(new Uint8Array(hashBuffer)).map(b=>b.toString(16).padStart(2,'0')).join('');
-  await updateDoc(doc(db,"users",username),{password:hashHex});
-  alert("Password updated!");
-}
+/* BACK BUTTON */
+document.getElementById("backBtn").onclick = ()=>{ window.location.href="dashboard.html"; }
 
-window.deleteAccount=async()=>{
-  if(!confirm("Are you sure? This will delete your account!")) return;
-  await deleteDoc(doc(db,"users",username));
-  sessionStorage.removeItem("loggedInUser");
-  alert("Account deleted.");
-  window.location.href="login.html";
-}
+/* RESET PASSWORD */
+document.getElementById("resetPassBtn").onclick = async ()=>{
+  const pass=document.getElementById("newPass").value;
+  const confirm=document.getElementById("confirmPass").value;
+  const status=document.getElementById("statusMsg");
 
-function toggleSidebar(){
-  const sb=document.getElementById("sidebar");
-  sb.classList.toggle("collapsed");
-  document.querySelector(".content").style.marginLeft=sb.classList.contains("collapsed")?"60px":"250px";
-}
+  if(!pass || !confirm){ status.textContent="Please fill both fields."; return; }
+  if(pass!==confirm){ status.textContent="Passwords do not match."; return; }
 
-function goDashboard(){ window.location.href="dashboard.html"; }
+  // Hash password
+  const encoder=new TextEncoder();
+  const data=encoder.encode(pass);
+  const hashBuffer=await crypto.subtle.digest('SHA-256',data);
+  const hashArray=Array.from(new Uint8Array(hashBuffer));
+  const hashHex=hashArray.map(b=>b.toString(16).padStart(2,'0')).join('');
+
+  try{
+    await updateDoc(doc(db,"users",username),{password:hashHex});
+    status.style.color="green";
+    status.textContent="Password updated successfully!";
+    document.getElementById("newPass").value="";
+    document.getElementById("confirmPass").value="";
+  }catch(err){
+    console.error(err);
+    status.style.color="red";
+    status.textContent="Error updating password.";
+  }
+};
+
+/* DELETE ACCOUNT */
+document.getElementById("deleteAccBtn").onclick = async ()=>{
+  if(!confirm("Are you sure you want to delete your DirectFeed account?")) return;
+  try{
+    await deleteDoc(doc(db,"users",username));
+    sessionStorage.removeItem("loggedInUser");
+    alert("Account deleted successfully.");
+    window.location.href="login.html";
+  }catch(err){
+    console.error(err);
+    alert("Error deleting account.");
+  }
+};
 </script>
 </body>
 </html>

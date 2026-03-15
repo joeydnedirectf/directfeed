@@ -1,146 +1,190 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Settings</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - DirectFeed</title>
 <style>
-body {margin:0;font-family:Arial;background:#f0f0f0;display:flex;}
-
-/* SIDEBAR */
-.sidebar {
-  position: fixed;
-  left:0;
-  top:0;
-  height:100%;
-  width:250px;
-  background:#1a1a1a;
-  color:white;
-  transition: width 0.3s;
+body{
+  font-family:Arial;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  background:#f0f0f0;
+}
+form{
   display:flex;
   flex-direction:column;
+  width:280px;
+  padding:25px;
+  background:white;
+  border-radius:8px;
+  box-shadow:0 0 10px rgba(0,0,0,0.1);
 }
-.sidebar.collapsed { width:60px; }
-.sidebar .logo { font-size:22px; text-align:center; padding:15px 0; font-weight:bold; border-bottom:1px solid #333; }
-.sidebar button {
-  display:flex;
-  align-items:center;
-  width:100%;
-  padding:12px 20px;
-  border:none;
-  background:none;
+input,button{
+  margin:6px 0;
+  padding:10px;
+  border-radius:4px;
+  border:1px solid #ccc;
+}
+button{
+  background:#007bff;
   color:white;
+  border:none;
   cursor:pointer;
-  text-align:left;
-  font-size:16px;
-  transition:background 0.2s;
+  font-weight:bold;
 }
-.sidebar button:hover { background:#333; }
-.sidebar button i { margin-right:10px; font-style:normal; width:20px; text-align:center; }
-.sidebar button.active { background:#444; }
-
-/* TOGGLE BUTTON */
-.toggleBtn { background:#444; border:none; color:white; cursor:pointer; font-size:18px; padding:10px; text-align:left; }
-
-/* CONTENT */
-.content { margin-left:250px; padding:20px; transition: margin-left 0.3s; flex:1; }
-h2 { margin-top:0; }
-
-/* USER INFO / SETTINGS BUTTONS */
-.userInfo { margin-bottom:20px; font-size:18px; }
-button { padding:10px 15px; margin-top:10px; border:none; border-radius:4px; cursor:pointer; }
-.changePass { background:#007bff; color:white; }
-.deleteAcc { background:red; color:white; }
+#error{
+  color:red;
+  font-size:0.9em;
+}
+#loading{
+  display:none;
+  text-align:center;
+  margin-top:10px;
+}
+.spinner{
+  border:4px solid #eee;
+  border-top:4px solid #007bff;
+  border-radius:50%;
+  width:24px;
+  height:24px;
+  animation:spin 1s linear infinite;
+  margin:auto;
+}
+.codeBox{
+  margin-top:10px;
+  padding:10px;
+  background:#ddd;
+  font-weight:bold;
+  text-align:center;
+  letter-spacing:3px;
+  font-size:18px;
+  border-radius:4px;
+}
+@keyframes spin{
+  0%{transform:rotate(0deg)}
+  100%{transform:rotate(360deg)}
+}
 </style>
 </head>
 <body>
 
-<!-- SIDEBAR -->
-<div class="sidebar" id="sidebar">
-  <div class="logo">DirectFeed</div>
-  <button class="toggleBtn" onclick="toggleSidebar()">☰</button>
-  <button id="navInbox" onclick="loadInbox()"><i>📥</i><span class="label">Inbox</span></button>
-  <button id="navTrash" onclick="loadTrash()"><i>🗑️</i><span class="label">Trash</span></button>
-  <button id="navSend" onclick="openSend()"><i>✉️</i><span class="label">Send</span></button>
-  <button id="navSettings" class="active" onclick="loadSettings()"><i>⚙️</i><span class="label">Settings</span></button>
-</div>
+<form id="loginForm">
+  <h2>Login</h2>
+  <input id="username" placeholder="Username" required>
+  <input id="password" type="password" placeholder="Password" required>
+  
+  <div id="securitySection" style="display:none;">
+    <div id="codeMessage"></div>
+    <input id="codeInput" placeholder="Enter security code">
+  </div>
 
-<!-- CONTENT -->
-<div class="content" id="content">
-  <h2>Settings</h2>
-  <div class="userInfo">Username: <span id="settingsUser"></span></div>
-  <button class="changePass" onclick="changePassword()">Change Password</button><br>
-  <button class="deleteAcc" onclick="deleteAccount()">Delete Account</button>
-</div>
+  <button type="submit" id="loginBtn">Login</button>
+  <div id="error"></div>
+  <div id="loading">
+    <div class="spinner"></div>
+    <div>Checking login...</div>
+  </div>
+</form>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getFirestore, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, addDoc, collection } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey:"AIzaSyCnE-UOw56IASUOU_qwBcF5YsBOOml9BRY",
-  authDomain:"directfeed-c3084.firebaseapp.com",
-  projectId:"directfeed-c3084",
-  storageBucket:"directfeed-c3084.firebasestorage.app",
-  messagingSenderId:"780676224282",
-  appId:"1:780676224282:web:8580ee6c3aa1738394c8a3"
+  apiKey: "AIzaSyCnE-UOw56IASUOU_qwBcF5YsBOOml9BRY",
+  authDomain: "directfeed-c3084.firebaseapp.com",
+  projectId: "directfeed-c3084",
+  storageBucket: "directfeed-c3084.firebasestorage.app",
+  messagingSenderId: "780676224282",
+  appId: "1:780676224282:web:8580ee6c3aa1738394c8a3"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* SESSION LOGIN */
-let username = sessionStorage.getItem("loggedInUser");
-if(!username) window.location.href="login.html";
-document.getElementById("settingsUser").textContent = username;
-
-/* SIDEBAR TOGGLE */
-function toggleSidebar(){
-  const sb = document.getElementById("sidebar");
-  sb.classList.toggle("collapsed");
-  document.querySelector(".content").style.marginLeft = sb.classList.contains("collapsed")?"60px":"250px";
+if(sessionStorage.getItem("loggedInUser")){
+  window.location.href="dashboard.html";
 }
 
-/* NAVIGATION */
-function highlightNav(id){
-  ["navInbox","navTrash","navSend","navSettings"].forEach(b=>document.getElementById(b).classList.remove("active"));
-  document.getElementById(id).classList.add("active");
+// Helper: SHA256 hashing
+async function hashPassword(password){
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2,"0"))
+    .join("");
 }
 
-/* SETTINGS FUNCTIONS */
-window.loadSettings = ()=>{
-  highlightNav("navSettings");
-  document.getElementById("content").innerHTML = `
-    <h2>Settings</h2>
-    <div class="userInfo">Username: ${username}</div>
-    <button class="changePass" onclick="changePassword()">Change Password</button><br>
-    <button class="deleteAcc" onclick="deleteAccount()">Delete Account</button>
-  `;
+// Generate random 5-char alphanumeric code
+function generateCode(){ 
+  return Math.random().toString(36).substring(2,7).toUpperCase();
 }
 
-window.changePassword = async ()=>{
-  let newPass = prompt("Enter new password (will be hashed SHA256 before saving):");
-  if(!newPass) return;
-  const msgUint8 = new TextEncoder().encode(newPass);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b=>b.toString(16).padStart(2,'0')).join('');
-  await updateDoc(doc(db,"users",username),{password:hashHex});
-  alert("Password updated successfully!");
-}
+let tempLoginUser = null; // holds username during 2FA
+let tempCode = null;
 
-window.deleteAccount = async ()=>{
-  if(!confirm("Are you sure? This will delete your account permanently!")) return;
-  await deleteDoc(doc(db,"users",username));
-  sessionStorage.removeItem("loggedInUser");
-  alert("Account deleted. Returning to login.");
-  window.location.href="login.html";
-}
+const form = document.getElementById("loginForm");
+const error = document.getElementById("error");
+const loading = document.getElementById("loading");
+const securitySection = document.getElementById("securitySection");
+const codeMessage = document.getElementById("codeMessage");
+const codeInput = document.getElementById("codeInput");
 
-/* SIDEBAR NAVIGATION HANDLERS */
-window.loadInbox = ()=>{ window.location.href="dashboard.html"; }
-window.loadTrash = ()=>{ window.location.href="dashboard.html"; }
-window.openSend = ()=>{ window.location.href="dashboard.html"; }
-window.loadSettings();
+form.addEventListener("submit", async e=>{
+  e.preventDefault();
+  error.textContent="";
+  loading.style.display="block";
+
+  const usernameVal = document.getElementById("username").value.trim();
+  const passwordVal = document.getElementById("password").value;
+
+  if(!usernameVal || !passwordVal){ loading.style.display="none"; return; }
+
+  // 1. Hash password
+  const hashed = await hashPassword(passwordVal);
+
+  // 2. Check user
+  const ref = doc(db,"users",usernameVal);
+  const snap = await getDoc(ref);
+  loading.style.display="none";
+  if(!snap.exists()){ error.textContent="Invalid username or password"; return; }
+
+  const data = snap.data();
+  if(data.password!==hashed){ error.textContent="Invalid username or password"; return; }
+
+  // 3. Check if 2FA enabled
+  if(data.securityCodeEnabled){
+    tempLoginUser = usernameVal;
+    tempCode = generateCode();
+    // Send automated message from security#df
+    await addDoc(collection(db,"messages"),{
+      from:"security#df",
+      to:usernameVal,
+      text:`Hello ${usernameVal}, you tried to login. Please enter the code below.`,
+      code: tempCode,
+      deleted:false,
+      timestamp:Date.now()
+    });
+    securitySection.style.display="block";
+    codeMessage.innerHTML = `Enter this code: <div class="codeBox">${tempCode}</div>`;
+    return;
+  }
+
+  // If no 2FA, login directly
+  sessionStorage.setItem("loggedInUser",usernameVal);
+  window.location.href="dashboard.html";
+});
+
+// 4. Security code verification
+codeInput.addEventListener("input", ()=>{
+  if(codeInput.value.trim().toUpperCase()===tempCode){
+    sessionStorage.setItem("loggedInUser",tempLoginUser);
+    window.location.href="dashboard.html";
+  }
+});
 </script>
 </body>
 </html>

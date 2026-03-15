@@ -33,6 +33,7 @@ h2{margin-top:0;}
 .deleteBtn{background:red;color:white;border:none;padding:10px;margin-top:10px;cursor:pointer;}
 .permDelete{background:black;color:white;border:none;padding:10px;margin-top:10px;cursor:pointer;}
 .replyBtn{background:#007bff;color:white;border:none;padding:10px;margin-top:10px;cursor:pointer;}
+.favBtn{background:gold;color:black;border:none;padding:10px;margin-top:10px;cursor:pointer;}
 .sendBtn{position:fixed;bottom:60px;right:20px;background:#007bff;color:white;border:none;padding:16px 22px;border-radius:50px;cursor:pointer;}
 #sendStatus{position:fixed;bottom:20px;right:20px;font-size:14px;}
 .divider{margin:10px 0;border-top:1px dashed #888;padding-top:5px;font-size:14px;color:#555;}
@@ -80,7 +81,6 @@ input{width:100%;padding:6px;}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
-// Firebase config
 const firebaseConfig = {
   apiKey:"AIzaSyCnE-UOw56IASUOU_qwBcF5YsBOOml9BRY",
   authDomain:"directfeed-c3084.firebaseapp.com",
@@ -146,7 +146,7 @@ async function loadInbox(){
     row.className="messageRow";
     let previewText = data.text.substring(0,60);
     if(data.replyTo) previewText = "↩ Replied to: " + data.replyTo + " | " + previewText;
-    row.innerHTML="<b>From:</b> "+data.from+"<br>"+previewText;
+    row.innerHTML="<b>From:</b> "+data.from+"<br>"+previewText+"<br><small>"+new Date(data.timestamp).toLocaleString()+"</small>";
     row.onclick=()=>openMessage(docu.id,data);
     content.appendChild(row);
   });
@@ -159,6 +159,7 @@ async function openMessage(id,data){
   box.className="fullMessage";
 
   let html="<h3>From: "+data.from+"</h3><p>"+data.text+"</p>";
+  html += `<small>${new Date(data.timestamp).toLocaleString()}</small>`;
   if(data.replyTo){
     html += `<div class="divider">Replied to: ${data.replyTo}</div>`;
   }
@@ -182,8 +183,18 @@ async function openMessage(id,data){
     openSend();
   }
 
+  // Favorite button
+  const fav=document.createElement("button");
+  fav.className="favBtn";
+  fav.textContent = data.favorite?"★ Unfavorite":"☆ Favorite";
+  fav.onclick=async()=>{
+    await updateDoc(doc(db,"messages",id),{favorite:!data.favorite});
+    loadInbox();
+  }
+
   box.appendChild(del);
   box.appendChild(reply);
+  box.appendChild(fav);
   content.appendChild(box);
 }
 
@@ -200,7 +211,7 @@ async function loadTrash(){
     row.className="messageRow";
     let previewText = data.text.substring(0,60);
     if(data.replyTo) previewText = "↩ Replied to: " + data.replyTo + " | " + previewText;
-    row.innerHTML="<b>From:</b> "+data.from+"<br>"+previewText;
+    row.innerHTML="<b>From:</b> "+data.from+"<br>"+previewText+"<br><small>"+new Date(data.timestamp).toLocaleString()+"</small>";
     row.onclick=()=>openTrash(docu.id,data);
     content.appendChild(row);
   });
@@ -212,12 +223,12 @@ async function openTrash(id,data){
   const box=document.createElement("div");
   box.className="fullMessage";
   let html="<h3>From: "+data.from+"</h3><p>"+data.text+"</p>";
+  html += `<small>${new Date(data.timestamp).toLocaleString()}</small>`;
   if(data.replyTo){
     html += `<div class="divider">Replied to: ${data.replyTo}</div>`;
   }
   box.innerHTML = html;
 
-  // Restore
   const restoreBtn=document.createElement("button");
   restoreBtn.className="deleteBtn";
   restoreBtn.style.background="green";
@@ -227,7 +238,6 @@ async function openTrash(id,data){
     loadTrash();
   }
 
-  // Permanent Delete
   const permDel=document.createElement("button");
   permDel.className="permDelete";
   permDel.textContent="Delete Permanently";
@@ -273,7 +283,7 @@ async function sendMessage(){
     const userDocSnap = await getDoc(doc(db,"users",recipientVal));
     if(!userDocSnap.exists()){ statusModal.textContent="Recipient does not exist"; statusModal.style.color="red"; return; }
 
-    const msgData = {from:username,to:recipientVal,text:text,deleted:false,timestamp:Date.now()};
+    const msgData = {from:username,to:recipientVal,text:text,deleted:false,timestamp:Date.now(),favorite:false};
     if(window.replyTarget) msgData.replyTo = window.replyTarget;
 
     await addDoc(collection(db,"messages"), msgData);
@@ -291,7 +301,6 @@ document.getElementById("cancelSendBtn")?.addEventListener("click",closeSend);
 
 /* INITIAL LOAD */
 loadInbox();
-
 </script>
 </body>
 </html>

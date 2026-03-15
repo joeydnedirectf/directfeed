@@ -2,9 +2,10 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Dashboard</title>
+<title>Dashboard - DirectFeed</title>
 <style>
 body {margin:0;font-family:Arial;background:#f0f0f0;display:flex;}
+
 /* SIDEBAR */
 .sidebar {position:fixed;left:0;top:0;height:100%;width:250px;background:#1a1a1a;color:white;transition:width 0.3s;display:flex;flex-direction:column;}
 .sidebar.collapsed{width:60px;}
@@ -27,16 +28,17 @@ h2{margin-top:0;}
 #settingsBtn{background:#888;color:white;}
 
 /* MESSAGE ROWS */
-.messageRow{background:white;padding:15px;margin-bottom:10px;border-radius:6px;cursor:pointer;border:1px solid #ddd;}
+.messageRow{background:white;padding:15px;margin-bottom:10px;border-radius:6px;cursor:pointer;border:1px solid #ddd;display:flex;justify-content:space-between;align-items:center;}
 .messageRow:hover{background:#f7f7f7;}
+.messageInfo{flex:1;}
+.messageActions button{margin-left:5px;padding:4px 8px;cursor:pointer;border:none;border-radius:4px;}
 .fullMessage{background:white;padding:20px;border-radius:6px;border:1px solid #ddd;}
-.deleteBtn{background:red;color:white;border:none;padding:10px;margin-top:10px;cursor:pointer;}
-.permDelete{background:black;color:white;border:none;padding:10px;margin-top:10px;cursor:pointer;}
-.replyBtn{background:#007bff;color:white;border:none;padding:10px;margin-top:10px;cursor:pointer;}
-.favBtn{background:gold;color:black;border:none;padding:10px;margin-top:10px;cursor:pointer;}
+.deleteBtn{background:red;color:white;}
+.replyBtn{background:#007bff;color:white;}
+.favoriteBtn{background:#f0ad4e;color:white;}
+.repliedTo{border-left:2px solid #ccc;padding-left:10px;margin-top:10px;color:#555;font-size:0.9em;}
 .sendBtn{position:fixed;bottom:60px;right:20px;background:#007bff;color:white;border:none;padding:16px 22px;border-radius:50px;cursor:pointer;}
 #sendStatus{position:fixed;bottom:20px;right:20px;font-size:14px;}
-.divider{margin:10px 0;border-top:1px dashed #888;padding-top:5px;font-size:14px;color:#555;}
 .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);justify-content:center;align-items:center;}
 .modalContent{background:white;padding:20px;border-radius:8px;width:320px;}
 textarea{width:100%;height:80px;}
@@ -79,8 +81,9 @@ input{width:100%;padding:6px;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, getDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
+// Firebase config
 const firebaseConfig = {
   apiKey:"AIzaSyCnE-UOw56IASUOU_qwBcF5YsBOOml9BRY",
   authDomain:"directfeed-c3084.firebaseapp.com",
@@ -104,10 +107,7 @@ document.getElementById("logoutBtn").onclick = ()=>{
 }
 
 /* SETTINGS NAVIGATION */
-function openSettings(){ 
-  highlightNav("navSettings");
-  window.location.href="settings.html"; 
-}
+function openSettings(){ window.location.href="settings.html"; }
 document.getElementById("settingsBtn").onclick = openSettings;
 document.getElementById("navSettings").onclick = openSettings;
 
@@ -120,142 +120,16 @@ function toggleSidebar(){
 
 /* HIGHLIGHT NAV */
 function highlightNav(id){
-  ["navInbox","navTrash","navSend","navSettings"].forEach(b=>{
-    const el=document.getElementById(b);
-    if(el) el.classList.remove("active");
-  });
-  const el=document.getElementById(id);
-  if(el) el.classList.add("active");
+  ["navInbox","navTrash","navSend","navSettings"].forEach(b=>document.getElementById(b).classList.remove("active"));
+  document.getElementById(id).classList.add("active");
 }
-
-/* REPLY TARGET TRACKING */
-window.replyTarget = null;
 
 const content=document.getElementById("content");
 
-/* INBOX */
-async function loadInbox(){
-  highlightNav("navInbox");
-  content.innerHTML="<h2>Inbox</h2>";
-  const q=query(collection(db,"messages"), where("to","==",username), where("deleted","==",false));
-  const snap=await getDocs(q);
-  if(snap.empty) content.innerHTML+="<p>No messages.</p>";
-  snap.forEach(docu=>{
-    const data=docu.data();
-    const row=document.createElement("div");
-    row.className="messageRow";
-    let previewText = data.text.substring(0,60);
-    if(data.replyTo) previewText = "↩ Replied to: " + data.replyTo + " | " + previewText;
-    row.innerHTML="<b>From:</b> "+data.from+"<br>"+previewText+"<br><small>"+new Date(data.timestamp).toLocaleString()+"</small>";
-    row.onclick=()=>openMessage(docu.id,data);
-    content.appendChild(row);
-  });
-}
-
-/* OPEN MESSAGE */
-async function openMessage(id,data){
-  content.innerHTML="";
-  const box=document.createElement("div");
-  box.className="fullMessage";
-
-  let html="<h3>From: "+data.from+"</h3><p>"+data.text+"</p>";
-  html += `<small>${new Date(data.timestamp).toLocaleString()}</small>`;
-  if(data.replyTo){
-    html += `<div class="divider">Replied to: ${data.replyTo}</div>`;
-  }
-  box.innerHTML = html;
-
-  // Delete button
-  const del=document.createElement("button");
-  del.className="deleteBtn";
-  del.textContent="Delete";
-  del.onclick=async()=>{ 
-    await updateDoc(doc(db,"messages",id),{deleted:true}); 
-    loadInbox(); 
-  }
-
-  // Reply button
-  const reply=document.createElement("button");
-  reply.className="replyBtn";
-  reply.textContent="Reply";
-  reply.onclick=()=>{
-    window.replyTarget = id;
-    openSend();
-  }
-
-  // Favorite button
-  const fav=document.createElement("button");
-  fav.className="favBtn";
-  fav.textContent = data.favorite?"★ Unfavorite":"☆ Favorite";
-  fav.onclick=async()=>{
-    await updateDoc(doc(db,"messages",id),{favorite:!data.favorite});
-    loadInbox();
-  }
-
-  box.appendChild(del);
-  box.appendChild(reply);
-  box.appendChild(fav);
-  content.appendChild(box);
-}
-
-/* TRASH */
-async function loadTrash(){
-  highlightNav("navTrash");
-  content.innerHTML="<h2>Trash</h2>";
-  const q=query(collection(db,"messages"), where("to","==",username), where("deleted","==",true));
-  const snap=await getDocs(q);
-  if(snap.empty) content.innerHTML+="<p>No messages in Trash.</p>";
-  snap.forEach(docu=>{
-    const data=docu.data();
-    const row=document.createElement("div");
-    row.className="messageRow";
-    let previewText = data.text.substring(0,60);
-    if(data.replyTo) previewText = "↩ Replied to: " + data.replyTo + " | " + previewText;
-    row.innerHTML="<b>From:</b> "+data.from+"<br>"+previewText+"<br><small>"+new Date(data.timestamp).toLocaleString()+"</small>";
-    row.onclick=()=>openTrash(docu.id,data);
-    content.appendChild(row);
-  });
-}
-
-/* OPEN TRASH */
-async function openTrash(id,data){
-  content.innerHTML="";
-  const box=document.createElement("div");
-  box.className="fullMessage";
-  let html="<h3>From: "+data.from+"</h3><p>"+data.text+"</p>";
-  html += `<small>${new Date(data.timestamp).toLocaleString()}</small>`;
-  if(data.replyTo){
-    html += `<div class="divider">Replied to: ${data.replyTo}</div>`;
-  }
-  box.innerHTML = html;
-
-  const restoreBtn=document.createElement("button");
-  restoreBtn.className="deleteBtn";
-  restoreBtn.style.background="green";
-  restoreBtn.textContent="Restore to Inbox";
-  restoreBtn.onclick=async()=>{ 
-    await updateDoc(doc(db,"messages",id),{deleted:false});
-    loadTrash();
-  }
-
-  const permDel=document.createElement("button");
-  permDel.className="permDelete";
-  permDel.textContent="Delete Permanently";
-  permDel.onclick=async()=>{
-    if(confirm("Permanently delete?")){
-      await deleteDoc(doc(db,"messages",id));
-      loadTrash();
-    }
-  }
-
-  box.appendChild(restoreBtn);
-  box.appendChild(permDel);
-  content.appendChild(box);
-}
-
 /* SEND MODAL */
 function openSend(){ 
-  document.getElementById("sendModal").style.display="flex"; 
+  const modal=document.getElementById("sendModal");
+  if(modal) modal.style.display="flex"; 
   highlightNav("navSend"); 
 }
 function closeSend(){ 
@@ -264,43 +138,101 @@ function closeSend(){
   const status=document.getElementById("sendModalStatus");
   if(status) status.textContent=""; 
 }
-document.getElementById("navInbox").onclick = loadInbox;
-document.getElementById("navTrash").onclick = loadTrash;
 document.getElementById("navSend").onclick = openSend;
 
+/* SEND MESSAGE */
 async function sendMessage(){
-  const recipient = document.getElementById("recipient");
-  const textEl = document.getElementById("messageText");
-  const statusModal = document.getElementById("sendModalStatus");
-  if(!recipient || !textEl || !statusModal) return;
+  const recipientVal=document.getElementById("recipient").value.trim();
+  const text=document.getElementById("messageText").value.trim();
+  const statusModal=document.getElementById("sendModalStatus");
 
-  const recipientVal = recipient.value.trim();
-  const text = textEl.value.trim();
-  if(text.length===0){ statusModal.textContent="Message cannot be empty"; statusModal.style.color="red"; return; }
-  if(text.length>200){ statusModal.textContent="Message too long (max 200)"; statusModal.style.color="red"; return; }
+  if(!recipientVal || !text){ statusModal.textContent="All fields required"; return; }
 
   try{
-    const userDocSnap = await getDoc(doc(db,"users",recipientVal));
-    if(!userDocSnap.exists()){ statusModal.textContent="Recipient does not exist"; statusModal.style.color="red"; return; }
+    const userSnap=await getDoc(doc(db,"users",recipientVal));
+    if(!userSnap.exists()){ statusModal.textContent="Recipient does not exist"; return; }
 
-    const msgData = {from:username,to:recipientVal,text:text,deleted:false,timestamp:Date.now(),favorite:false};
-    if(window.replyTarget) msgData.replyTo = window.replyTarget;
+    await addDoc(collection(db,"messages"),{
+      from: username,
+      to: recipientVal,
+      text,
+      deleted: false,
+      favorite: false,
+      timestamp: Date.now(),
+      replyTo: null
+    });
 
-    await addDoc(collection(db,"messages"), msgData);
-
-    statusModal.textContent="Message sent successfully!"; statusModal.style.color="green";
-    recipient.value=""; textEl.value="";
-    window.replyTarget = null;
+    statusModal.textContent="Message sent!";
+    document.getElementById("recipient").value="";
+    document.getElementById("messageText").value="";
     closeSend();
     loadInbox();
-  } catch(err){ console.error(err); statusModal.textContent="Error sending message"; statusModal.style.color="red"; }
+  }catch(err){console.error(err); statusModal.textContent="Error sending message";}
+}
+document.getElementById("sendButton")?.addEventListener("click", sendMessage);
+document.getElementById("cancelSendBtn")?.addEventListener("click", closeSend);
+
+/* INBOX */
+async function loadInbox(){
+  highlightNav("navInbox");
+  content.innerHTML="<h2>Inbox</h2>";
+  const q=query(collection(db,"messages"), where("to","==",username), where("deleted","==",false), orderBy("timestamp","desc"));
+  const snap=await getDocs(q);
+  if(snap.empty) content.innerHTML+="<p>No messages.</p>";
+  snap.forEach(docu=>{
+    const data=docu.data();
+    const row=document.createElement("div");
+    row.className="messageRow";
+
+    const info=document.createElement("div");
+    info.className="messageInfo";
+    let timeStr=new Date(data.timestamp).toLocaleString();
+    info.innerHTML=`<b>From:</b> ${data.from}<br>${data.text.substring(0,60)}<br><i>${timeStr}</i>`;
+    if(data.replyTo) info.innerHTML+=`<div class="repliedTo">Replied to: ${data.replyTo}</div>`;
+
+    const actions=document.createElement("div");
+    actions.className="messageActions";
+
+    const replyBtn=document.createElement("button");
+    replyBtn.textContent="Reply"; replyBtn.className="replyBtn";
+    replyBtn.onclick=()=>openReply(docu.id,data);
+
+    const favBtn=document.createElement("button");
+    favBtn.textContent=data.favorite?"★":"☆"; favBtn.className="favoriteBtn";
+    favBtn.onclick=async ()=>{
+      await updateDoc(doc(db,"messages",docu.id),{favorite:!data.favorite});
+      loadInbox();
+    };
+
+    const delBtn=document.createElement("button");
+    delBtn.textContent="Delete"; delBtn.className="deleteBtn";
+    delBtn.onclick=async()=>{
+      await updateDoc(doc(db,"messages",docu.id),{deleted:true});
+      loadInbox();
+    };
+
+    actions.appendChild(replyBtn);
+    actions.appendChild(favBtn);
+    actions.appendChild(delBtn);
+
+    row.appendChild(info);
+    row.appendChild(actions);
+    content.appendChild(row);
+  });
 }
 
-document.getElementById("sendButton")?.addEventListener("click",sendMessage);
-document.getElementById("cancelSendBtn")?.addEventListener("click",closeSend);
+/* REPLY FUNCTION */
+window.replyTarget=null;
+function openReply(id,data){
+  window.replyTarget=id;
+  document.getElementById("recipient").value=data.from;
+  document.getElementById("messageText").value="";
+  openSend();
+}
 
 /* INITIAL LOAD */
 loadInbox();
+
 </script>
 </body>
 </html>

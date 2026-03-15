@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Settings - DirectFeed</title>
 <style>
-body {margin:0;font-family:Arial;background:#f0f0f0;display:flex;}
+body {margin:0;font-family:Arial,sans-serif;background:#f5f5f5;display:flex;min-height:100vh;}
 
 /* SIDEBAR */
 .sidebar {
@@ -12,66 +12,53 @@ body {margin:0;font-family:Arial;background:#f0f0f0;display:flex;}
   left:0;
   top:0;
   height:100%;
-  width:250px;
-  background:#1a1a1a;
+  width:220px;
+  background:#1b1b1b;
   color:white;
-  transition: width 0.3s;
   display:flex;
   flex-direction:column;
+  transition: width 0.3s;
 }
 .sidebar.collapsed { width:60px; }
-.sidebar .logo { font-size:22px; text-align:center; padding:15px 0; font-weight:bold; border-bottom:1px solid #333; }
-.sidebar button {
-  display:flex;
-  align-items:center;
-  width:100%;
-  padding:12px 20px;
-  border:none;
-  background:none;
-  color:white;
-  cursor:pointer;
-  text-align:left;
-  font-size:16px;
-  transition:background 0.2s;
-}
+.sidebar .logo { font-size:22px;text-align:center;padding:15px 0;font-weight:bold;border-bottom:1px solid #333; }
+.sidebar button { display:flex;align-items:center;width:100%;padding:12px 18px;border:none;background:none;color:white;cursor:pointer;text-align:left;font-size:16px;transition:background 0.2s;}
 .sidebar button:hover { background:#333; }
-.sidebar button i { margin-right:10px; font-style:normal; width:20px; text-align:center; }
+.sidebar button i { width:25px;text-align:center;margin-right:10px;font-style:normal; }
 .sidebar button.active { background:#444; }
 
 /* TOGGLE BUTTON */
-.toggleBtn { background:#444; border:none; color:white; cursor:pointer; font-size:18px; padding:10px; text-align:left; }
+.toggleBtn { background:#444;border:none;color:white;cursor:pointer;font-size:18px;padding:10px;text-align:left;}
 
 /* CONTENT */
-.content { margin-left:250px; padding:20px; transition: margin-left 0.3s; flex:1; }
-h2 { margin-top:0; }
+.content { margin-left:220px;padding:20px;transition:margin-left 0.3s;flex:1; }
+h2 { margin-top:0;color:#333; }
 
-/* USER INFO / SETTINGS BUTTONS */
-.userInfo { margin-bottom:20px; font-size:18px; }
-button { padding:10px 15px; margin-top:10px; border:none; border-radius:4px; cursor:pointer; }
+/* BUTTONS */
+button { padding:10px 15px; margin-top:10px; border:none; border-radius:4px; cursor:pointer; font-weight:bold; }
 .changePass { background:#007bff; color:white; }
 .deleteAcc { background:red; color:white; }
-.toggleSecurity { background:#555; color:white; }
+.securityToggle { background:#28a745; color:white; }
+
+.userInfo { font-size:18px; margin-bottom:15px; }
 </style>
 </head>
 <body>
 
-<!-- SIDEBAR -->
 <div class="sidebar" id="sidebar">
   <div class="logo">DirectFeed</div>
   <button class="toggleBtn" onclick="toggleSidebar()">☰</button>
-  <button id="navInbox" onclick="loadInbox()"><i>📥</i><span class="label">Inbox</span></button>
-  <button id="navTrash" onclick="loadTrash()"><i>🗑️</i><span class="label">Trash</span></button>
-  <button id="navSend" onclick="openSend()"><i>✉️</i><span class="label">Send</span></button>
-  <button id="navSettings" class="active" onclick="loadSettings()"><i>⚙️</i><span class="label">Settings</span></button>
+  <button id="navInbox" onclick="window.location.href='dashboard.html'"><i>📥</i><span class="label">Inbox</span></button>
+  <button id="navTrash" onclick="window.location.href='dashboard.html'"><i>🗑️</i><span class="label">Trash</span></button>
+  <button id="navSend" onclick="window.location.href='dashboard.html'"><i>✉️</i><span class="label">Send</span></button>
+  <button id="navSettings" class="active"><i>⚙️</i><span class="label">Settings</span></button>
 </div>
 
-<!-- CONTENT -->
 <div class="content" id="content">
   <h2>Settings</h2>
   <div class="userInfo">Username: <span id="settingsUser"></span></div>
   <button class="changePass" onclick="changePassword()">Change Password</button><br>
   <button class="deleteAcc" onclick="deleteAccount()">Delete Account</button><br>
-  <button class="toggleSecurity" id="securityBtn"></button>
+  <button class="securityToggle" id="securityBtn" onclick="toggleSecurityCode()">Enable Security Code</button>
 </div>
 
 <script type="module">
@@ -90,53 +77,22 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* SESSION LOGIN */
 let username = sessionStorage.getItem("loggedInUser");
 if(!username) window.location.href="login.html";
-document.getElementById("settingsUser").textContent = username;
+document.getElementById("settingsUser").textContent=username;
 
-/* SIDEBAR TOGGLE */
+const securityBtn=document.getElementById("securityBtn");
+
+// SIDEBAR TOGGLE
 function toggleSidebar(){
-  const sb = document.getElementById("sidebar");
+  const sb=document.getElementById("sidebar");
   sb.classList.toggle("collapsed");
-  document.querySelector(".content").style.marginLeft = sb.classList.contains("collapsed")?"60px":"250px";
+  document.querySelector(".content").style.marginLeft=sb.classList.contains("collapsed")?"60px":"220px";
 }
 
-/* NAVIGATION */
-function highlightNav(id){
-  ["navInbox","navTrash","navSend","navSettings"].forEach(b=>document.getElementById(b).classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-}
-
-/* SETTINGS FUNCTIONS */
-async function loadSettings(){
-  highlightNav("navSettings");
-  document.getElementById("content").innerHTML = `
-    <h2>Settings</h2>
-    <div class="userInfo">Username: ${username}</div>
-    <button class="changePass" onclick="changePassword()">Change Password</button><br>
-    <button class="deleteAcc" onclick="deleteAccount()">Delete Account</button><br>
-    <button class="toggleSecurity" id="securityBtn"></button>
-  `;
-
-  // Load security status
-  const userSnap = await getDoc(doc(db,"users",username));
-  let securityEnabled = false;
-  if(userSnap.exists()) securityEnabled = userSnap.data().securityCodeEnabled || false;
-
-  const securityBtn = document.getElementById("securityBtn");
-  securityBtn.textContent = securityEnabled ? "Disable Security Code" : "Enable Security Code";
-
-  securityBtn.onclick = async ()=>{
-    securityEnabled = !securityEnabled;
-    await updateDoc(doc(db,"users",username), { securityCodeEnabled: securityEnabled });
-    securityBtn.textContent = securityEnabled ? "Disable Security Code" : "Enable Security Code";
-    alert(`Security code ${securityEnabled ? "enabled" : "disabled"}!`);
-  }
-}
-
-async function changePassword(){
-  let newPass = prompt("Enter new password (will be hashed SHA256 before saving):");
+// CHANGE PASSWORD
+window.changePassword = async ()=>{
+  let newPass=prompt("Enter new password (SHA256 hashed before saving):");
   if(!newPass) return;
   const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(newPass));
   const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b=>b.toString(16).padStart(2,'0')).join('');
@@ -144,7 +100,8 @@ async function changePassword(){
   alert("Password updated successfully!");
 }
 
-async function deleteAccount(){
+// DELETE ACCOUNT
+window.deleteAccount = async ()=>{
   if(!confirm("Are you sure? This will delete your account permanently!")) return;
   await deleteDoc(doc(db,"users",username));
   sessionStorage.removeItem("loggedInUser");
@@ -152,12 +109,22 @@ async function deleteAccount(){
   window.location.href="login.html";
 }
 
-/* SIDEBAR NAVIGATION HANDLERS */
-function loadInbox(){ window.location.href="dashboard.html"; }
-function loadTrash(){ window.location.href="dashboard.html"; }
-function openSend(){ window.location.href="dashboard.html"; }
+// TOGGLE SECURITY CODE SYSTEM
+window.toggleSecurityCode = async ()=>{
+  const userRef=doc(db,"users",username);
+  const snap=await getDoc(userRef);
+  if(!snap.exists()) return;
+  const enabled = snap.data().securityEnabled || false;
+  await updateDoc(userRef,{securityEnabled: !enabled});
+  securityBtn.textContent = !enabled ? "Disable Security Code" : "Enable Security Code";
+  alert("Security code system "+(!enabled?"enabled":"disabled"));
+}
 
-loadSettings();
+// INITIAL SECURITY STATUS
+(async ()=>{
+  const snap=await getDoc(doc(db,"users",username));
+  if(snap.exists() && snap.data().securityEnabled) securityBtn.textContent="Disable Security Code";
+})();
 </script>
 </body>
 </html>
